@@ -1,7 +1,6 @@
 import flet as ft
 import os
 from src.Config import theme
-from src.Components.trocaTema import ThemeToggle
 from src.Components.notificacao import notificacao
 
 def LoginPage(page: ft.Page):
@@ -69,16 +68,26 @@ def LoginPage(page: ft.Page):
         input_usuario.color = theme.current_theme["TEXT"]
         input_usuario.border_color = theme.current_theme["TEXT_SECONDARY"]
         input_usuario.focused_border_color = theme.current_theme["PRIMARY_COLOR"]
+        input_usuario.prefix_icon = ft.Icon(name="person", color=theme.current_theme["TEXT"])
         
         input_senha.bgcolor = theme.current_theme["BACKGROUNDSCREEN"]
         input_senha.color = theme.current_theme["TEXT"]
         input_senha.border_color = theme.current_theme["TEXT_SECONDARY"]
         input_senha.focused_border_color = theme.current_theme["PRIMARY_COLOR"]
+        input_senha.prefix_icon = ft.Icon(name="lock", color=theme.current_theme["TEXT"])
+        
+        input_senha.suffix_icon = ft.Icon(
+            name="visibility" if input_senha.password else "visibility_off",
+            color=theme.current_theme["TEXT"]
+        )
         
         if hasattr(page, 'views') and page.views:
             page.views[-1].bgcolor = theme.current_theme["BACKGROUNDSCREEN"]
         
         page.update()
+
+    icone_usuario = ft.Icon(name="person", color=theme.current_theme["TEXT"])
+    icone_senha = ft.Icon(name="lock", color=theme.current_theme["TEXT"])
 
     input_usuario = ft.TextField(
         label="Usuário",
@@ -89,7 +98,7 @@ def LoginPage(page: ft.Page):
         color=theme.current_theme["TEXT"],
         border_color=theme.current_theme["TEXT_SECONDARY"],
         focused_border_color=theme.current_theme["PRIMARY_COLOR"],
-        prefix_icon="person",
+        prefix_icon=icone_usuario,
         on_submit=on_enter_pressed, 
         on_change=on_usuario_change,
         autofocus=True,
@@ -109,7 +118,8 @@ def LoginPage(page: ft.Page):
         color=theme.current_theme["TEXT"],
         border_color=theme.current_theme["TEXT_SECONDARY"],
         focused_border_color=theme.current_theme["PRIMARY_COLOR"],
-        prefix_icon="lock",
+        prefix_icon=icone_senha,
+        suffix_icon=ft.Icon(name="visibility", color=theme.current_theme["TEXT"]),
         on_submit=on_enter_pressed,
         on_change=on_senha_change,
         text_size=14,
@@ -162,10 +172,10 @@ def LoginPage(page: ft.Page):
         bgcolor=theme.current_theme["CARD"],
         border_radius=theme.CARD_RADIUS,
         shadow=ft.BoxShadow(
-            blur_radius=32, 
-            spread_radius=5, 
-            color="#00000015", 
-            offset=ft.Offset(0, 8)
+            blur_radius=40,         
+            spread_radius=8,         
+            color="#00000030",       
+            offset=ft.Offset(0, 12)  
         ),
         content=ft.Column(
             controls=[
@@ -194,21 +204,18 @@ def LoginPage(page: ft.Page):
         expand=True
     )
 
-    toggle_container = ft.Container(
-        content=ThemeToggle(page, on_theme_changed=on_theme_change),
-        top=20,
-        right=20,
-        width=55,
-        height=35
-    )
-
     layout = ft.Stack(
         controls=[
             main_area,
-            #toggle_container
         ],
         expand=True
     )
+
+    def inicializar_pagina():
+        page.update()
+    
+    import threading
+    threading.Timer(0.1, inicializar_pagina).start()
 
     return ft.View(
         route="/login",

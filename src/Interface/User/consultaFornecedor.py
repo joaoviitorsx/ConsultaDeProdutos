@@ -1,7 +1,9 @@
+import os
 import flet as ft
 from src.Config import theme
 from src.Components.notificacao import notificacao
-
+from src.Components.headerApp import HeaderApp
+from src.Components.section import footer 
 import asyncio
 
 def ConsultaFornecedorPage(page: ft.Page):
@@ -13,8 +15,48 @@ def ConsultaFornecedorPage(page: ft.Page):
     th = theme.current_theme
     fornecedor_data = {}
 
-    def voltar_dashboard(e):
-        page.go("/dashboard")
+    def on_theme_change(novo_tema):
+        nonlocal th
+        th = theme.current_theme
+        page.bgcolor = th["BACKGROUNDSCREEN"]
+        page.window_bgcolor = th["BACKGROUNDSCREEN"]
+        if hasattr(page, 'views') and page.views:
+            page.views[-1].bgcolor = th["BACKGROUNDSCREEN"]
+        
+        # Atualizar o header
+        header_container.content = HeaderApp(
+            page, 
+            titulo_tela="Consultar Fornecedor", 
+            on_theme_changed=on_theme_change, 
+            mostrar_voltar=True,
+            mostrar_logo=False,           
+            mostrar_nome_empresa=False,   
+            mostrar_usuario=False         
+        )
+        
+        cnpj_field.bgcolor = th["CARD"]
+        cnpj_field.color = th["TEXT"]
+        cnpj_field.border_color = th["TEXT_SECONDARY"]
+        cnpj_field.hint_style = ft.TextStyle(color=th["TEXT_SECONDARY"])
+        
+        status_text.color = th["ERROR"]
+        loader.color = th["PRIMARY_COLOR"]
+        
+        search_card.content.bgcolor = th["CARD"]
+        
+        page.update()
+
+    header_container = ft.Container(
+        content=HeaderApp(
+            page, 
+            titulo_tela="Consultar Fornecedor", 
+            on_theme_changed=on_theme_change, 
+            mostrar_voltar=True,
+            mostrar_logo=False,           
+            mostrar_nome_empresa=False,  
+            mostrar_usuario=False         
+        )
+    )
 
     cnpj_field = ft.TextField(
         label="CNPJ",
@@ -31,7 +73,35 @@ def ConsultaFornecedorPage(page: ft.Page):
 
     status_text = ft.Text(value="", color=th["ERROR"], visible=False, size=12)
     loader = ft.ProgressRing(width=20, height=20, visible=False, color=th["PRIMARY_COLOR"])
-    resultado_container = ft.Container(visible=False)
+    resultado_container = ft.Container(
+        visible=True,
+        alignment=ft.alignment.center,
+        content=ft.Container(
+            content=ft.Column([
+                ft.Container(
+                    content=ft.Icon(name="info", size=64, color=th["TEXT_SECONDARY"]),
+                    margin=ft.margin.only(bottom=16)
+                ),
+                ft.Text(
+                    "Nenhum fornecedor buscado ainda",
+                    size=18,
+                    weight="bold",
+                    color=th["TEXT"],
+                    text_align="center"
+                ),
+                ft.Text(
+                    "Digite um CNPJ válido acima e clique em buscar.",
+                    size=14,
+                    color=th["TEXT_SECONDARY"],
+                    text_align="center"
+                )
+            ],
+            spacing=8,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+            padding=80,
+            border_radius=12
+        )
+    )
 
     def format_cnpj(value):
         digits = ''.join(filter(str.isdigit, value))
@@ -70,7 +140,6 @@ def ConsultaFornecedorPage(page: ft.Page):
             resultado_container.visible = False
             page.update()
             return
-
 
         status_text.visible = False
         loader.visible = True
@@ -235,19 +304,6 @@ def ConsultaFornecedorPage(page: ft.Page):
             )
         )
 
-    header = ft.Container(
-        content=ft.Row([
-            ft.IconButton(
-                icon="arrow_back",
-                icon_color=th["TEXT"],
-                tooltip="Voltar ao Dashboard",
-                on_click=voltar_dashboard
-            ),
-            ft.Text("Consultar Fornecedor", size=20, weight="bold", color=th["TEXT"])
-        ], spacing=8),
-        padding=ft.padding.symmetric(horizontal=8, vertical=16)
-    )
-
     search_card = ft.Card(
         elevation=4,
         content=ft.Container(
@@ -256,7 +312,6 @@ def ConsultaFornecedorPage(page: ft.Page):
             border_radius=12,
             content=ft.Column([
                 ft.Row([
-                    ft.Icon(name="search", color=th["TEXT"], size=20),
                     ft.Text("Consultar Fornecedor", size=18, weight="bold", color=th["TEXT"])
                 ], spacing=8),
                 
@@ -266,7 +321,7 @@ def ConsultaFornecedorPage(page: ft.Page):
                     cnpj_field,
                     ft.ElevatedButton(
                         content=ft.Row([
-                            ft.Icon(name="search", size=16, color="white"),
+                            ft.Icon(name="search", size=28, color="white"),
                         ], spacing=4),
                         on_click=buscar_fornecedor,
                         bgcolor=th["PRIMARY_COLOR"],
@@ -292,7 +347,7 @@ def ConsultaFornecedorPage(page: ft.Page):
             ft.Container(
                 padding=24,
                 content=ft.Column([
-                    header,
+                    header_container, 
                     search_card,
                     resultado_container
                 ], spacing=24),

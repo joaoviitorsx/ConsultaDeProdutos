@@ -3,6 +3,7 @@ from src.Config import theme
 from src.Components.cardResultado import CardResultado
 from src.Components.cardFornecedor import CardFornecedor
 from src.Components.notificacao import notificacao
+from src.Components.headerApp import HeaderApp
 import time
 import threading
 
@@ -14,20 +15,47 @@ def ConsultaProdutosPage(page: ft.Page):
     page.bgcolor = th["BACKGROUNDSCREEN"]
     page.window_bgcolor = th["BACKGROUNDSCREEN"]
     
-    # Estado dos fornecedores e resultados
     fornecedores_data = [{"id": "1", "cnpj": "", "codigo_produto": "", "valor_produto": "", "processando": False}]
     resultados_data = []
     processamento_global = False
 
-    # Função para voltar ao dashboard
-    def voltar_dashboard(e):
-        page.go("/dashboard")
-    
-    # Função para formatar moeda
+    def on_theme_change(novo_tema):
+        nonlocal th
+        th = theme.current_theme
+        page.bgcolor = th["BACKGROUNDSCREEN"]
+        page.window_bgcolor = th["BACKGROUNDSCREEN"]
+
+        if hasattr(page, 'views') and page.views:
+            page.views[-1].bgcolor = th["BACKGROUNDSCREEN"]
+        
+        header_container.content = HeaderApp(
+            page, 
+            titulo_tela="Consultar Produtos", 
+            on_theme_changed=on_theme_change, 
+            mostrar_voltar=True,
+            mostrar_logo=False,        
+            mostrar_nome_empresa=False 
+        )
+        atualizar_paineis_tema()
+        atualizar_painel_fornecedores()
+        atualizar_resultados()
+        
+        page.update()
+
+    header_container = ft.Container(
+        content=HeaderApp(
+            page, 
+            titulo_tela="Consultar Produtos", 
+            on_theme_changed=on_theme_change, 
+            mostrar_voltar=True,
+            mostrar_logo=False, 
+            mostrar_nome_empresa=False
+        )
+    )
+
     def format_currency(valor):
         return f"R$ {valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
     
-    # Simulação de dados do fornecedor
     def simular_dados_fornecedor(cnpj):
         dados_mock = {
             "11.222.333/0001-81": {"razao": "Tech Solutions LTDA", "fantasia": "TechSol", "regime": "Simples Nacional"},
@@ -42,9 +70,8 @@ def ConsultaProdutosPage(page: ft.Page):
             "regime": "Simples Nacional"
         })
     
-    # Cálculo de impostos
     def calcular_impostos(fornecedor):
-        time.sleep(1.5)  # Simular delay da API
+        time.sleep(1.5)
         
         try:
             valor = float(fornecedor["valor_produto"].replace(',', '.'))
@@ -64,8 +91,7 @@ def ConsultaProdutosPage(page: ft.Page):
         cofins = (valor * aliquota_cofins) / 100
         valor_adicional = (valor * adicional) / 100
         valor_total = valor + icms + pis + cofins + valor_adicional
-        
-        # Simulação de isenção para códigos específicos
+
         isento = fornecedor["codigo_produto"] in ["12345", "99999"]
         
         return {
@@ -87,43 +113,114 @@ def ConsultaProdutosPage(page: ft.Page):
             "melhor_opcao": False
         }
     
-    # Função para atualizar fornecedor (callback para o CardFornecedor)
     def atualizar_fornecedor(index, campo, valor):
         if index < len(fornecedores_data):
             fornecedores_data[index][campo] = valor
-            atualizar_progress_indicator()
             page.update()
     
-    # Função para processar fornecedor
+    def atualizar_paineis_tema():
+        nonlocal painel_fornecedores, resultados_card, titulo_secao, botao_processar_todos
+        
+        th = theme.current_theme
+
+        titulo_secao.content = ft.Column([
+            ft.Text("Comparação de Fornecedores", 
+                size=32, weight="bold", color=th["TEXT"]),
+            ft.Text("Analise impostos e encontre a melhor opção para sua compra", 
+                size=18, color=th["TEXT_SECONDARY"]),
+        ], spacing=8)
+        
+        botao_processar_todos.bgcolor = th.get("SUCCESS", "#10B981")
+        
+        painel_fornecedores.content = ft.Container(
+            bgcolor=th["CARD"],
+            padding=24,
+            border_radius=12,
+            height=700,  # Altura fixa mantida
+            content=ft.Column([
+                ft.Row([
+                    ft.Row([
+                        ft.Icon(name="business", color=th["PRIMARY_COLOR"], size=24),
+                        ft.Text("Cadastro de Fornecedores", size=20, weight="bold", color=th["TEXT"])
+                    ], spacing=12),
+                    ft.Container(
+                        content=ft.Text(f"{len(fornecedores_data)}/4", color=th["TEXT_SECONDARY"], size=14),
+                        bgcolor="transparent",
+                        padding=ft.padding.symmetric(horizontal=8, vertical=4),
+                        border=ft.border.all(1, th["TEXT_SECONDARY"]),
+                        border_radius=4
+                    )
+                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                
+                ft.Text("Adicione até 4 fornecedores para comparar impostos e valores", 
+                    color=th["TEXT_SECONDARY"], size=14),
+                
+                ft.Container(height=16),
+                
+                ft.Container(
+                    content=ft.Column([fornecedores_container], scroll=ft.ScrollMode.AUTO),
+                    height=520,  # Altura fixa específica para área de scroll
+                ),
+                ft.Container(
+                    content=botao_processar_todos,
+                    margin=ft.margin.only(top=16),
+                    height=48  # Altura fixa para o botão
+                )
+            ], spacing=16)
+        )
+        
+        resultados_card.content = ft.Container(
+            bgcolor=th["CARD"],
+            padding=24,
+            border_radius=12,
+            height=700,  # Altura fixa mantida
+            content=ft.Column([
+                ft.Row([
+                    ft.Icon(name="assessment", color=th.get("SUCCESS", "#10B981"), size=24),
+                    ft.Text("Resultado da Análise", size=20, weight="bold", color=th["TEXT"]),
+                    ft.Container(
+                        content=ft.Text(f"{len(resultados_data)} resultado{'s' if len(resultados_data) != 1 else ''}", 
+                                    color="white", size=12, weight="bold"),
+                        bgcolor=th.get("SUCCESS", "#10B981"),
+                        padding=ft.padding.symmetric(horizontal=8, vertical=4),
+                        border_radius=12,
+                        visible=len(resultados_data) > 0
+                    )
+                ], spacing=12),
+                
+                ft.Container(height=16),
+                
+                ft.Container(
+                    content=ft.Column([painel_resultados], scroll=ft.ScrollMode.AUTO),
+                    height=620,  # Altura fixa específica para área de scroll
+                )
+            ], spacing=16)
+        )
+
     def processar_fornecedor(fornecedor_id):
         fornecedor = next((f for f in fornecedores_data if f["id"] == fornecedor_id), None)
         if not fornecedor or not all([fornecedor["cnpj"], fornecedor["codigo_produto"], fornecedor["valor_produto"]]):
             notificacao(page, "Atenção", "Preencha todos os campos antes de processar!", "alerta")
             return
         
-        # Validar CNPJ
         if len(fornecedor["cnpj"].replace(".", "").replace("/", "").replace("-", "")) != 14:
             notificacao(page, "CNPJ Inválido", "O CNPJ deve ter 14 dígitos", "erro")
             return
         
-        # Atualizar estado do fornecedor para processando
         for f in fornecedores_data:
             if f["id"] == fornecedor_id:
                 f["processando"] = True
                 break
         atualizar_painel_fornecedores()
-        atualizar_progress_indicator()
         
         def processar():
             try:
                 resultado = calcular_impostos(fornecedor)
                 
-                # Atualizar resultados
                 nonlocal resultados_data
                 resultados_data = [r for r in resultados_data if r["id"] != fornecedor_id]
                 resultados_data.append(resultado)
                 
-                # Encontrar melhor opção
                 if len(resultados_data) > 1:
                     min_total = min(r["valor_total"] for r in resultados_data)
                     for r in resultados_data:
@@ -131,31 +228,26 @@ def ConsultaProdutosPage(page: ft.Page):
                 else:
                     resultados_data[0]["melhor_opcao"] = True
                 
-                # Notificação de sucesso
                 notificacao(page, "Sucesso", f"Fornecedor #{fornecedor_id} processado com sucesso!", "sucesso")
                 
-                # Atualizar UI
+                atualizar_paineis_tema()
                 atualizar_resultados()
-                atualizar_progress_indicator()
                 
             except Exception as e:
                 notificacao(page, "Erro", f"Erro ao processar fornecedor: {str(e)}", "erro")
                 print(f"Erro ao processar fornecedor: {e}")
             finally:
-                # Remover estado de processando
                 for f in fornecedores_data:
                     if f["id"] == fornecedor_id:
                         f["processando"] = False
                         break
                 atualizar_painel_fornecedores()
-                atualizar_progress_indicator()
         
         threading.Thread(target=processar).start()
     
     def remover_fornecedor(fornecedor_id):
         nonlocal fornecedores_data, resultados_data
         
-        # Não permitir remover o fornecedor 1
         if fornecedor_id == "1":
             notificacao(page, "Ação Bloqueada", "O Fornecedor #1 não pode ser removido", "alerta")
             return
@@ -165,77 +257,26 @@ def ConsultaProdutosPage(page: ft.Page):
             fornecedores_data = [f for f in fornecedores_data if f["id"] != fornecedor_id]
             resultados_data = [r for r in resultados_data if r["id"] != fornecedor_id]
             
-            # Recalcular melhor opção
             if len(resultados_data) > 0:
                 min_total = min(r["valor_total"] for r in resultados_data)
                 for r in resultados_data:
                     r["melhor_opcao"] = r["valor_total"] == min_total
             
+            atualizar_paineis_tema()
             atualizar_painel_fornecedores()
             atualizar_resultados()
-            atualizar_progress_indicator()
             
             if fornecedor_removido:
                 notificacao(page, "Fornecedor Removido", f"Fornecedor #{fornecedor_id} foi removido", "info")
 
-    # Função para validar fornecedores
     def contar_fornecedores_validos():
         return len([f for f in fornecedores_data if all([f["cnpj"], f["codigo_produto"], f["valor_produto"]])])
-
-    # Progress Indicator
-    def criar_progress_indicator():
-        th = theme.current_theme
-        fornecedores_validos = contar_fornecedores_validos()
-        
-        step1_color = th["PRIMARY_COLOR"] if len(fornecedores_data) > 0 else th["TEXT_SECONDARY"]
-        step2_color = th["PRIMARY_COLOR"] if fornecedores_validos > 0 else th["TEXT_SECONDARY"]
-        step3_color = th.get("SUCCESS", "#10B981") if len(resultados_data) > 0 else th["TEXT_SECONDARY"]
-        
-        return ft.Container(
-            content=ft.Row([
-                # Step 1
-                ft.Row([
-                    ft.Container(width=12, height=12, bgcolor=step1_color, border_radius=6),
-                    ft.Text("Adicionar Fornecedores", size=14, color=th["TEXT_SECONDARY"])
-                ], spacing=8),
-                
-                # Divider 1
-                ft.Container(width=48, height=2, bgcolor=th["TEXT_SECONDARY"]),
-                
-                # Step 2
-                ft.Row([
-                    ft.Container(width=12, height=12, bgcolor=step2_color, border_radius=6),
-                    ft.Text("Processar Dados", size=14, color=th["TEXT_SECONDARY"])
-                ], spacing=8),
-                
-                # Divider 2
-                ft.Container(width=48, height=2, bgcolor=th["TEXT_SECONDARY"]),
-                
-                # Step 3
-                ft.Row([
-                    ft.Container(width=12, height=12, bgcolor=step3_color, border_radius=6),
-                    ft.Text("Ver Resultados", size=14, color=th["TEXT_SECONDARY"])
-                ], spacing=8),
-                
-            ], alignment=ft.MainAxisAlignment.CENTER, spacing=12),
-            margin=ft.margin.only(bottom=32)
-        )
-
-    # Função para atualizar progress indicator
-    progress_indicator = criar_progress_indicator()
     
-    def atualizar_progress_indicator():
-        nonlocal progress_indicator
-        progress_indicator = criar_progress_indicator()
-        page.update()
-    
-    # Função para atualizar os resultados na UI
     def atualizar_resultados():
         th = theme.current_theme
         painel_resultados.controls.clear()
         
         if not resultados_data:
-            # Estado vazio com cores do tema
             painel_resultados.controls.append(
                 ft.Container(
                     content=ft.Column([
@@ -259,7 +300,6 @@ def ConsultaProdutosPage(page: ft.Page):
                 )
             )
         else:
-            # Card de economia (se houver mais de 1 resultado) com cores do tema
             if len(resultados_data) > 1:
                 economia_maxima = max(r["valor_total"] for r in resultados_data) - min(r["valor_total"] for r in resultados_data)
                 success_color = th.get("SUCCESS", "#10B981")
@@ -270,10 +310,10 @@ def ConsultaProdutosPage(page: ft.Page):
                         ft.Text(f"Economia de até {format_currency(economia_maxima)}", 
                             color=success_color, weight="bold", size=16)
                     ], spacing=8),
-                    bgcolor=f"{success_color}1A",  # 10% opacity
+                    bgcolor=f"{success_color}1A",
                     padding=16,
                     border_radius=8,
-                    border=ft.border.all(1, f"{success_color}4D"),  # 30% opacity
+                    border=ft.border.all(1, f"{success_color}4D"), 
                     margin=ft.margin.only(bottom=16)
                 )
                 painel_resultados.controls.append(economia_card)
@@ -284,7 +324,6 @@ def ConsultaProdutosPage(page: ft.Page):
         
         page.update()
     
-    # Função para adicionar fornecedor
     def adicionar_fornecedor(e):
         if len(fornecedores_data) < 4:
             novo_id = str(len(fornecedores_data) + 1)
@@ -295,8 +334,8 @@ def ConsultaProdutosPage(page: ft.Page):
                 "valor_produto": "",
                 "processando": False
             })
+            atualizar_paineis_tema()
             atualizar_painel_fornecedores()
-            atualizar_progress_indicator()
             notificacao(page, "Fornecedor Adicionado", f"Fornecedor #{novo_id} adicionado com sucesso!", "info")
     
     def processar_todos(e):
@@ -321,9 +360,8 @@ def ConsultaProdutosPage(page: ft.Page):
                 for fornecedor in fornecedores_validos:
                     if not fornecedor["processando"]:
                         processar_fornecedor(fornecedor["id"])
-                        time.sleep(0.5)  # Pequeno delay entre processamentos
+                        time.sleep(0.5)
                 
-                # Aguardar todos terminarem
                 while any(f["processando"] for f in fornecedores_data):
                     time.sleep(0.1)
                 
@@ -353,7 +391,6 @@ def ConsultaProdutosPage(page: ft.Page):
         th = theme.current_theme
         fornecedores_container.controls.clear()
         
-        # Usar o CardFornecedor modularizado
         for i, fornecedor in enumerate(fornecedores_data):
             card = CardFornecedor(
                 fornecedor=fornecedor,
@@ -365,7 +402,6 @@ def ConsultaProdutosPage(page: ft.Page):
             )
             fornecedores_container.controls.append(card)
         
-        # Botão adicionar fornecedor com cores do tema
         if len(fornecedores_data) < 4:
             botao_adicionar = ft.ElevatedButton(
                 content=ft.Row([
@@ -385,41 +421,21 @@ def ConsultaProdutosPage(page: ft.Page):
             )
             fornecedores_container.controls.append(botao_adicionar)
         
-        # Atualizar botão processar todos
         atualizar_botao_processar_todos()
         page.update()
 
-    header = ft.Container(
+    titulo_secao = ft.Container(
         content=ft.Column([
-            # Breadcrumb
-            ft.Row([
-                ft.TextButton(
-                    content=ft.Row([
-                        ft.Icon("arrow_back", color=th["TEXT_SECONDARY"], size=16),
-                    ], spacing=4),
-                    on_click=voltar_dashboard,
-                    style=ft.ButtonStyle(
-                        color=th["TEXT_SECONDARY"],
-                        overlay_color={ft.ControlState.HOVERED: th["CARD"]}
-                    )
-                ),
-            ], spacing=4),
-            
-            ft.Container(height=16),
-            
-            # Título e subtítulo
             ft.Text("Comparação de Fornecedores", 
-                size=32, weight="bold", color=th["TEXT"], text_align="center"),
+                size=32, weight="bold", color=th["TEXT"]),
             ft.Text("Analise impostos e encontre a melhor opção para sua compra", 
-                size=18, color=th["TEXT_SECONDARY"], text_align="center"),
-        ], spacing=8, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                size=18, color=th["TEXT_SECONDARY"]),
+        ], spacing=8),
         margin=ft.margin.only(bottom=32)
     )
-    
-    # Containers principais
+
     fornecedores_container = ft.Column(spacing=24)
     
-    # Botão processar todos
     botao_processar_todos = ft.ElevatedButton(
         content=ft.Row([
             ft.Icon(name="calculate", size=16, color="white"),
@@ -437,16 +453,14 @@ def ConsultaProdutosPage(page: ft.Page):
         )
     )
     
-    # Painel esquerdo - Cadastro de Fornecedores
     painel_fornecedores = ft.Card(
         elevation=8,
         content=ft.Container(
             bgcolor=th["CARD"],
             padding=24,
             border_radius=12,
-            border=ft.border.all(1, th["TEXT_SECONDARY"]),
+            height=700,  # Altura fixa
             content=ft.Column([
-                # Header do painel
                 ft.Row([
                     ft.Row([
                         ft.Icon(name="business", color=th["PRIMARY_COLOR"], size=24),
@@ -466,22 +480,19 @@ def ConsultaProdutosPage(page: ft.Page):
                 
                 ft.Container(height=16),
                 
-                # Container scrollável
                 ft.Container(
                     content=ft.Column([fornecedores_container], scroll=ft.ScrollMode.AUTO),
-                    height=500,
+                    height=520,  # Altura fixa para área de scroll
                 ),
-                
-                # Botão processar todos
                 ft.Container(
                     content=botao_processar_todos,
-                    margin=ft.margin.only(top=16)
+                    margin=ft.margin.only(top=16),
+                    height=48  # Altura fixa para o botão
                 )
             ], spacing=16)
         )
     )
     
-    # Painel direito - Resultados
     painel_resultados = ft.Column(spacing=24)
     
     resultados_card = ft.Card(
@@ -490,9 +501,8 @@ def ConsultaProdutosPage(page: ft.Page):
             bgcolor=th["CARD"],
             padding=24,
             border_radius=12,
-            border=ft.border.all(1, th["TEXT_SECONDARY"]),
+            height=700,  # Altura fixa
             content=ft.Column([
-                # Header do painel
                 ft.Row([
                     ft.Icon(name="assessment", color=th.get("SUCCESS", "#10B981"), size=24),
                     ft.Text("Resultado da Análise", size=20, weight="bold", color=th["TEXT"]),
@@ -508,16 +518,14 @@ def ConsultaProdutosPage(page: ft.Page):
                 
                 ft.Container(height=16),
                 
-                # Container scrollável dos resultados
                 ft.Container(
                     content=ft.Column([painel_resultados], scroll=ft.ScrollMode.AUTO),
-                    height=500,
+                    height=620,  # Altura fixa para área de scroll
                 )
             ], spacing=16)
         )
     )
-    
-    # Layout principal - Grid responsivo como no React
+
     layout_principal = ft.Row([
         ft.Container(
             content=painel_fornecedores,
@@ -531,32 +539,23 @@ def ConsultaProdutosPage(page: ft.Page):
         )
     ], spacing=0)
     
-    # Inicializar
     atualizar_painel_fornecedores()
     atualizar_resultados()
     
     return ft.View(
         route="/consulta_produtos",
-        bgcolor="#0F172A",  # Gradient dark background
+        bgcolor=th["BACKGROUNDSCREEN"],
         controls=[
-            ft.Container(
-                content=ft.Column([
-                    header,
-                    progress_indicator,
-                    layout_principal
-                ], spacing=0),
-                padding=24,
-                expand=True,
-                gradient=ft.LinearGradient(
-                    begin=ft.alignment.top_left,
-                    end=ft.alignment.bottom_right,
-                    colors=[
-                        theme.current_theme["BACKGROUNDSCREEN"],
-                        theme.current_theme["CARD"],
-                        theme.current_theme["BACKGROUNDSCREEN"]
-                    ]
-                )
-            )
+            ft.Column([
+                header_container,
+                ft.Container(
+                    content=ft.Column([
+                        titulo_secao,
+                        layout_principal
+                    ], spacing=0),
+                    padding=24,
+                    expand=True
+                ),
+            ])
         ],
-        scroll=ft.ScrollMode.ADAPTIVE
     )
