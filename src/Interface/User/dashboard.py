@@ -45,16 +45,22 @@ def DashboardPage(page: ft.Page):
             ft.Container(height=40),
             
             titleSection("Módulos Disponíveis", "Acesse as funcionalidades do sistema"),
+            
             DashboardCards(
                 page,
+                estilo="horizontal",
                 animacao=True,
-                spacing=16,
-                run_spacing=16,
-                elevacao=4
+                spacing=24, 
+                run_spacing=24,
+                padding_card=8,    
+                border_radius=16,   
+                altura_customizada=180  
             ),
-            ft.Container(height=32),
+            
+            ft.Container(height=40),
             footer()
         ]
+        page.update()
 
     header_container = ft.Container(
         content=HeaderApp(
