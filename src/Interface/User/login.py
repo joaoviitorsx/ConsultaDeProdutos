@@ -55,6 +55,16 @@ def LoginPage(page: ft.Page):
         if texto_erro.visible:
             texto_erro.visible = False
             page.update()
+    
+    def toggle_password_visibility(e):
+        input_senha.password = not input_senha.password
+        input_senha.suffix_icon = ft.IconButton(
+            icon="visibility_off" if input_senha.password else "visibility",  # Corrigido: usar strings
+            icon_color="black",
+            on_click=toggle_password_visibility,
+            tooltip="Mostrar/Ocultar senha"
+        )
+        page.update()
 
     def on_theme_change(novo_tema):
         page.bgcolor = theme.current_theme["BACKGROUNDSCREEN"]
@@ -76,9 +86,11 @@ def LoginPage(page: ft.Page):
         input_senha.focused_border_color = theme.current_theme["PRIMARY_COLOR"]
         input_senha.prefix_icon = ft.Icon(name="lock", color=theme.current_theme["TEXT"])
         
-        input_senha.suffix_icon = ft.Icon(
-            name="visibility" if input_senha.password else "visibility_off",
-            color=theme.current_theme["TEXT"]
+        input_senha.suffix_icon = ft.IconButton(
+            icon="visibility_off" if input_senha.password else "visibility",  # Corrigido: usar strings
+            icon_color="black", 
+            on_click=toggle_password_visibility,
+            tooltip="Mostrar/Ocultar senha"
         )
         
         if hasattr(page, 'views') and page.views:
@@ -111,7 +123,6 @@ def LoginPage(page: ft.Page):
         label="Senha",
         hint_text="Digite sua senha",
         password=True,
-        can_reveal_password=True,
         width=320,
         border_radius=theme.CARD_RADIUS,
         bgcolor=theme.current_theme["BACKGROUNDSCREEN"],
@@ -119,7 +130,12 @@ def LoginPage(page: ft.Page):
         border_color=theme.current_theme["TEXT_SECONDARY"],
         focused_border_color=theme.current_theme["PRIMARY_COLOR"],
         prefix_icon=icone_senha,
-        suffix_icon=ft.Icon(name="visibility", color=theme.current_theme["TEXT"]),
+        suffix_icon=ft.IconButton(
+            icon="visibility_off",  # Corrigido: usar string em vez de ft.icons.VISIBILITY_OFF
+            icon_color="black",
+            on_click=toggle_password_visibility,
+            tooltip="Mostrar/Ocultar senha"
+        ),
         on_submit=on_enter_pressed,
         on_change=on_senha_change,
         text_size=14,

@@ -558,4 +558,5 @@ def ConsultaProdutosPage(page: ft.Page):
                 ),
             ])
         ],
+        scroll=ft.ScrollMode.ADAPTIVE,
     )
