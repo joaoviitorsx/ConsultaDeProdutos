@@ -100,10 +100,10 @@ def HeaderApp(
         ),
         padding=ft.padding.symmetric(horizontal=padding_horizontal, vertical=padding_vertical),
         bgcolor=cor_fundo or th["CARD"],
-        expand=expand,  # MUDANÇA: usar parâmetro
+        expand=expand,
         border_radius=ft.border_radius.all(8),
         height=altura_customizada,
-        width=largura_maxima,  # NOVO: largura máxima
+        width=largura_maxima,
         margin=ft.margin.symmetric(horizontal=margin_horizontal) if margin_horizontal else None  # NOVO
     )
 
@@ -142,12 +142,11 @@ def HeaderCustom(page: ft.Page, botoes_extras=None, **kwargs):
     )
 
 def HeaderAlinhado(page: ft.Page, titulo="", on_theme_changed=None, **kwargs):
-    """Header alinhado com o conteúdo da página"""
     return HeaderApp(
         page=page,
         titulo_tela=titulo,
         on_theme_changed=on_theme_changed,
-        expand=False,  # Não expandir
-        largura_maxima=None,  # Sem limite de largura
+        expand=False,
+        largura_maxima=None,
         **kwargs
     )

@@ -203,7 +203,7 @@ def createActionCard(page, card_data, th, padding, border_radius, altura, cor_fu
     return ft.Card(
         elevation=3 if not animacao else 0,
         content=container,
-        surface_tint_color=th["CARD"]
+        color=th["CARD"]
     )
 
 def createStatsCard(card_data, th, padding, border_radius, altura, cor_fundo, border, animacao):
@@ -273,7 +273,7 @@ def createStatsCard(card_data, th, padding, border_radius, altura, cor_fundo, bo
     return ft.Card(
         elevation=2,
         content=container,
-        surface_tint_color=th["CARD"]
+        color=th["CARD"]
     )
 
 def createInfoCard(card_data, th, padding, border_radius, altura, cor_fundo, border, animacao):
@@ -331,7 +331,7 @@ def createInfoCard(card_data, th, padding, border_radius, altura, cor_fundo, bor
     return ft.Card(
         elevation=1,
         content=container,
-        surface_tint_color=th["CARD"]
+        color=th["CARD"]
     )
 
 def createCustomCard(card_data, th, padding, border_radius, altura, cor_fundo, border, animacao, estilo):
@@ -353,7 +353,7 @@ def createCustomCard(card_data, th, padding, border_radius, altura, cor_fundo, b
     return ft.Card(
         elevation=2,
         content=container,
-        surface_tint_color=th["CARD"]
+        color=th["CARD"]
     )
 
 def DashboardCards(page: ft.Page, estilo="horizontal", **kwargs):

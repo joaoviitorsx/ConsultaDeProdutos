@@ -320,7 +320,7 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
     return ft.Card(
         elevation=4,
         shadow_color=f"{th['PRIMARY_COLOR']}",  
-        surface_tint_color=f"{th['PRIMARY_COLOR']}",
+        color=f"{th['PRIMARY_COLOR']}",
         content=ft.Container(
             bgcolor=th["CARD"],
             padding=24,

@@ -6,7 +6,7 @@ light_theme = {
     "TEXT": "#1F2937",
     "TEXT_SECONDARY": "#6B7280",
     "ERROR": "#EF4444",
-    "BACKGROUNDSCREEN": "#C5C5C5",
+    "BACKGROUNDSCREEN": "#C2C2C2",
     "BLACK": "#000000",
 }
 

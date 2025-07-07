@@ -123,7 +123,7 @@ def welcomeSection(usuario_logado, page=None):
                 padding=ft.padding.all(32),
                 border_radius=20,
                 bgcolor=th["CARD"],
-                border=ft.border.all(1, th["TEXT_SECONDARY"] + "20"),
+                #border=ft.border.all(1, th["TEXT_SECONDARY"] + "20"),
             ),
             
             ft.Container(height=24),

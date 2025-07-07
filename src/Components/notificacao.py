@@ -4,10 +4,10 @@ import time
 
 def notificacao(page: ft.Page, titulo: str, mensagem: str, tipo: str = "info"):
     tipos = {
-        "sucesso": {"bg": "#22c55e", "text": "white", "icon": "check_circle"},
-        "erro": {"bg": "#ef4444", "text": "white", "icon": "error"},
-        "info": {"bg": "#3b82f6", "text": "white", "icon": "info"},
-        "alerta": {"bg": "#f59e0b", "text": "white", "icon": "warning"},
+        "sucesso": {"bg": "#1fb355", "text": "white", "icon": "check_circle"},
+        "erro": {"bg": "#db3e3e", "text": "white", "icon": "error"},
+        "info": {"bg": "#3474dc", "text": "white", "icon": "info"},
+        "alerta": {"bg": "#db8f0b", "text": "white", "icon": "warning"},
     }
 
     estilo = tipos.get(tipo, tipos["info"])
