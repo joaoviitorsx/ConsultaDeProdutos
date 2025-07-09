@@ -2,62 +2,88 @@ import flet as ft
 from src.Config import theme
 from src.Components.trocaTema import ThemeToggle
 
-def AdminLayout(page: ft.Page):
+def DashboardContent(page):
+    from src.Interface.Admin.dashboardAdmin import AdminDashboardContent
+    return AdminDashboardContent(page)
+
+def ProdutosContent(page):
+    from src.Interface.Admin.produtosAdmin import ProdutosAdminContent
+    return ProdutosAdminContent(page)
+
+def UsuariosContent(page):
+    from src.Interface.Admin.usuariosAdmin import UsuariosAdminContent
+    return UsuariosAdminContent(page)
+
+def FornecedorContent(page):
+    from src.Interface.Admin.fornecedorAdmin import FornecedorAdminContent
+    return FornecedorAdminContent(page)
+
+def RelatoriosContent(page):
+    from src.Interface.Admin.relatoriosAdmin import RelatoriosAdminContent
+    return RelatoriosAdminContent(page)
+
+def cardContent(content):
+    th = theme.current_theme
+    return ft.Container(
+        content=ft.Column(
+            controls=[content],
+            expand=True,
+            scroll=ft.ScrollMode.AUTO
+        ),
+        padding=16,
+        bgcolor=th["CARD"],
+        border_radius=8,
+        expand=True,
+        alignment=ft.alignment.top_left,
+        shadow=ft.BoxShadow(
+            blur_radius=16,
+            color=th["BORDER"] + "33",
+            offset=ft.Offset(0, 4)
+        )
+    )
+
+def AdminLayout(page: ft.Page, main_content=None, selected_route=None):
     content_map = {
-        "/admin_dashboard": dashboard_content,
-        "/admin/produtos": produtos_content,
-        "/admin/usuarios": usuarios_content,
-        "/admin/fornecedores": fornecedor_content,
-        "/admin/relatorios": relatorios_content,
+        "/admin_dashboard": DashboardContent,
+        "/admin/produtos": ProdutosContent,
+        "/admin/usuarios": UsuariosContent,
+        "/admin/fornecedores": FornecedorContent,
+        "/admin/relatorios": RelatoriosContent,
     }
-    
-    if not hasattr(page, "admin_selected_route"):
-        page.admin_selected_route = page.route if page.route in content_map else "/admin_dashboard"
+
+    if selected_route is not None:
+        page.admin_selected_route = selected_route
+    elif not hasattr(page, "admin_selected_route"):
+        page.admin_selected_route = "/admin_dashboard"
 
     main_content_container = ft.Container(
         expand=True,
-        content=content_map[page.admin_selected_route]()
+        content=cardContent(main_content if main_content else content_map[page.admin_selected_route](page))
     )
 
     def on_tab_selected(tab_route):
         page.admin_selected_route = tab_route
-        main_content_container.content = content_map[tab_route]()
+        main_content_container.content = cardContent(content_map[tab_route](page))
+        sidebar_container.content = AdminSidebar(tab_route, on_tab_selected)
         page.update()
+
+    sidebar_container = ft.Container(
+        content=AdminSidebar(page.admin_selected_route, on_tab_selected)
+    )
 
     def on_theme_change(_):
         page.clean()
-        page.add(AdminDashboardPage(page))
+        page.add(AdminLayout(page))
 
     header = AdminHeader(page, on_theme_change)
-    sidebar = AdminSidebar(page.admin_selected_route, on_tab_selected)
 
     return ft.Column([
         header,
         ft.Row([
-            sidebar,
-            ft.Container(width=1, bgcolor=theme.current_theme["BORDER"], opacity=0.1),
+            sidebar_container,
             main_content_container
         ], expand=True)
     ], expand=True)
-
-def get_main_content(tab):
-    t = theme.current_theme
-    titles = {
-        "dashboard": "Dashboard do admin",
-        "produtos": "Gestão de Produtos",
-        "usuarios": "Gestão de Usuários",
-        "fornecedor": "Gestão de Fornecedores",
-        "relatorios": "Relatórios Administrativos"
-    }
-    return ft.Container(
-        expand=True,
-        padding=ft.padding.all(24),
-        content=ft.Text(
-            titles.get(tab, "Selecione uma aba..."),
-            size=22,
-            color=t["TEXT"]
-        )
-    )
 
 def AdminHeader(page: ft.Page, on_theme_change):
     th = theme.current_theme
@@ -75,8 +101,8 @@ def AdminHeader(page: ft.Page, on_theme_change):
         border_radius=ft.border_radius.only(
             top_left=8,
             top_right=8,
-            bottom_right=0,
-            bottom_left=0
+            bottom_right=8,
+            bottom_left=8
         ),
         content=ft.Row([
             ft.Row([
@@ -153,10 +179,10 @@ def AdminSidebar(selected_route, on_tab_selected):
         width=170,
         bgcolor=th["CARD"],
         border_radius=ft.border_radius.only(
-            top_left=0,
-            top_right=0,
+            top_left=8,
+            top_right=8,
             bottom_left=8,
-            bottom_right=0
+            bottom_right=8
         ),
         content=ft.Column(
             controls=[
@@ -167,31 +193,3 @@ def AdminSidebar(selected_route, on_tab_selected):
             alignment=ft.MainAxisAlignment.START
         )
     )
-
-def AdminDashboardPage(page: ft.Page):
-    return ft.View(
-        route="/admin_dashboard",
-        controls=[AdminLayout(page)],
-        bgcolor=theme.current_theme["BACKGROUNDSCREEN"],
-        scroll=ft.ScrollMode.HIDDEN
-    )
-
-def dashboard_content():
-    th = theme.current_theme
-    return ft.Text("Dashboard do admin", size=22, color=th["TEXT"])
-
-def produtos_content():
-    th = theme.current_theme
-    return ft.Text("Gestão de Produtos", size=22, color=th["TEXT"])
-
-def usuarios_content():
-    th = theme.current_theme
-    return ft.Text("Gestão de Usuários", size=22, color=th["TEXT"])
-
-def fornecedor_content():
-    th = theme.current_theme
-    return ft.Text("Gestão de Fornecedores", size=22, color=th["TEXT"])
-
-def relatorios_content():
-    th = theme.current_theme
-    return ft.Text("Relatórios Administrativos", size=22, color=th["TEXT"])

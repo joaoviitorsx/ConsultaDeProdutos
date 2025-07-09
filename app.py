@@ -6,11 +6,7 @@ from src.Interface.User.consultaFornecedor import ConsultaFornecedorPage
 from src.Interface.User.consultaProdutos import ConsultaProdutosPage
 from src.Interface.User.consultaRelatorio import ConsultaRelatorioPage
 
-from src.Interface.Admin.dashboardAdmin import AdminLayout
-from src.Interface.Admin.usuariosAdmin import UsuariosAdminPage
-from src.Interface.Admin.fornecedorAdmin import FornecedorAdminPage
-from src.Interface.Admin.produtosAdmin import ProdutosAdminPage
-from src.Interface.Admin.relatoriosAdmin import RelatoriosAdminPage
+from src.Components.adminLayout import AdminLayout
 
 from src.Config import theme
 
@@ -34,18 +30,9 @@ def main(page: ft.Page):
         elif rota == "/relatorios":
             page.views.append(ConsultaRelatorioPage(page))
             
-            #rota admin
+        #rota admin
         elif rota == "/admin_dashboard":
             page.views.append(AdminLayout(page))
-        elif rota == "/admin/produtos":
-            page.views.append(ProdutosAdminPage(page))
-        elif rota == "/admin/fornecedores":
-            page.views.append(FornecedorAdminPage(page))
-        elif rota == "/admin/usuarios":
-            page.views.append(UsuariosAdminPage(page))
-        elif rota == "/admin/relatorios":
-            page.views.append(RelatoriosAdminPage(page))
-    
         else:
             page.views.append(ft.View("/", controls=[ft.Text("Página não encontrada!")]))
         

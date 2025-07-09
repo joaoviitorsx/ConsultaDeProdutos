@@ -1,19 +1,14 @@
 import flet as ft
 from src.Config import theme
-from src.Components.section import titleSection, footer
+from src.Components.section import footer
 from src.Components.statsCard import StatsCard
 from src.Components.adminLayout import AdminLayout
 from src.Components.monthlyCard import MonthlyCard
 from src.Components.activityCard import ActivityCard
 
-def AdminDashboardPage(page: ft.Page):
-    print("🛠️ Tela Admin Dashboard carregada")
-
-    page.bgcolor = theme.current_theme["BACKGROUNDSCREEN"]
-    page.window_bgcolor = theme.current_theme["BACKGROUNDSCREEN"]
+def AdminDashboardContent(page):
     th = theme.current_theme
 
-    # Estatísticas principais (cards)
     stats_cards = [
         StatsCard(
             "Total Fornecedores", "1.284",
@@ -37,10 +32,8 @@ def AdminDashboardPage(page: ft.Page):
         ),
     ]
 
-    # Conteúdo principal do dashboard
-    main_content = ft.Column(
+    return ft.Column(
         controls=[
-            # Linha de cards estatísticos
             ft.ResponsiveRow(
                 controls=[
                     ft.Container(card, col={"sm": 12, "md": 6, "lg": 3}, padding=8)
@@ -49,10 +42,7 @@ def AdminDashboardPage(page: ft.Page):
                 run_spacing=8,
                 spacing=8
             ),
-
             ft.Container(height=32),
-
-            # Gráfico e atividades
             ft.ResponsiveRow(
                 controls=[
                     ft.Container(MonthlyCard(), col={"sm": 12, "md": 6}, padding=8),
@@ -61,14 +51,15 @@ def AdminDashboardPage(page: ft.Page):
                 run_spacing=8,
                 spacing=8
             ),
-
-            ft.Container(height=32),
-            footer()
         ],
         expand=True,
         spacing=16
     )
 
+def DashboardPage(page: ft.Page):
+    print("🛠️ Tela Admin Dashboard carregada")
+    th = theme.current_theme
+    main_content = AdminDashboardContent(page)
     return ft.View(
         route="/admin_dashboard",
         controls=[
