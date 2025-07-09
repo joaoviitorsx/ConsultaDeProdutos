@@ -19,7 +19,7 @@ def ConsultaProdutosPage(page: ft.Page):
     resultados_data = []
     processamento_global = False
 
-    def on_theme_change(novo_tema):
+    def onThemeChange(novo_tema):
         nonlocal th
         th = theme.current_theme
         page.bgcolor = th["BACKGROUNDSCREEN"]
@@ -31,7 +31,7 @@ def ConsultaProdutosPage(page: ft.Page):
         header_container.content = HeaderApp(
             page, 
             titulo_tela="Consultar Produtos", 
-            on_theme_changed=on_theme_change, 
+            on_theme_changed=onThemeChange, 
             mostrar_voltar=True,
             mostrar_logo=False,        
             mostrar_nome_empresa=False 
@@ -46,7 +46,7 @@ def ConsultaProdutosPage(page: ft.Page):
         content=HeaderApp(
             page, 
             titulo_tela="Consultar Produtos", 
-            on_theme_changed=on_theme_change, 
+            on_theme_changed=onThemeChange, 
             mostrar_voltar=True,
             mostrar_logo=False, 
             mostrar_nome_empresa=False
@@ -136,7 +136,7 @@ def ConsultaProdutosPage(page: ft.Page):
             bgcolor=th["CARD"],
             padding=24,
             border_radius=12,
-            height=700,  # Altura fixa mantida
+            height=700,
             content=ft.Column([
                 ft.Row([
                     ft.Row([
@@ -159,12 +159,12 @@ def ConsultaProdutosPage(page: ft.Page):
                 
                 ft.Container(
                     content=ft.Column([fornecedores_container], scroll=ft.ScrollMode.AUTO),
-                    height=520,  # Altura fixa específica para área de scroll
+                    height=520, 
                 ),
                 ft.Container(
                     content=botao_processar_todos,
                     margin=ft.margin.only(top=16),
-                    height=48  # Altura fixa para o botão
+                    height=48
                 )
             ], spacing=16)
         )
@@ -173,7 +173,7 @@ def ConsultaProdutosPage(page: ft.Page):
             bgcolor=th["CARD"],
             padding=24,
             border_radius=12,
-            height=700,  # Altura fixa mantida
+            height=700,
             content=ft.Column([
                 ft.Row([
                     ft.Icon(name="assessment", color=th.get("SUCCESS", "#10B981"), size=24),
@@ -192,7 +192,7 @@ def ConsultaProdutosPage(page: ft.Page):
                 
                 ft.Container(
                     content=ft.Column([painel_resultados], scroll=ft.ScrollMode.AUTO),
-                    height=620,  # Altura fixa específica para área de scroll
+                    height=620,
                 )
             ], spacing=16)
         )
@@ -318,7 +318,6 @@ def ConsultaProdutosPage(page: ft.Page):
                 )
                 painel_resultados.controls.append(economia_card)
             
-            # Cards dos resultados ordenados por valor
             for resultado in sorted(resultados_data, key=lambda x: x["valor_total"]):
                 painel_resultados.controls.append(CardResultado(resultado))
         
@@ -459,7 +458,7 @@ def ConsultaProdutosPage(page: ft.Page):
             bgcolor=th["CARD"],
             padding=24,
             border_radius=12,
-            height=700,  # Altura fixa
+            height=700,
             content=ft.Column([
                 ft.Row([
                     ft.Row([
@@ -482,12 +481,12 @@ def ConsultaProdutosPage(page: ft.Page):
                 
                 ft.Container(
                     content=ft.Column([fornecedores_container], scroll=ft.ScrollMode.AUTO),
-                    height=520,  # Altura fixa para área de scroll
+                    height=520,
                 ),
                 ft.Container(
                     content=botao_processar_todos,
                     margin=ft.margin.only(top=16),
-                    height=48  # Altura fixa para o botão
+                    height=48
                 )
             ], spacing=16)
         )
@@ -501,7 +500,7 @@ def ConsultaProdutosPage(page: ft.Page):
             bgcolor=th["CARD"],
             padding=24,
             border_radius=12,
-            height=700,  # Altura fixa
+            height=700,
             content=ft.Column([
                 ft.Row([
                     ft.Icon(name="assessment", color=th.get("SUCCESS", "#10B981"), size=24),
@@ -520,7 +519,7 @@ def ConsultaProdutosPage(page: ft.Page):
                 
                 ft.Container(
                     content=ft.Column([painel_resultados], scroll=ft.ScrollMode.AUTO),
-                    height=620,  # Altura fixa para área de scroll
+                    height=620,
                 )
             ], spacing=16)
         )

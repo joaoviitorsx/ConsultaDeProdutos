@@ -1,1 +1,9 @@
 flet
+fastapi
+unicorn
+aiohttp
+mysql-connector-python
+python-dotenv
+bcrypt
+PyJWT
+python-multipart

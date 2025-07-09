@@ -2,7 +2,7 @@ import os
 import flet as ft
 from src.Config import theme
 from src.Components.headerApp import HeaderApp
-from src.Components.cardSection import DashboardCards, StatsCards
+from src.Components.cardSection import DashboardCards
 from src.Components.section import welcomeSection, titleSection, footer 
 
 def DashboardPage(page: ft.Page):
@@ -35,7 +35,7 @@ def DashboardPage(page: ft.Page):
         page.update()
 
     def update_dashboard_content():
-        usuario_logado = page.client_storage.get("usuario_logado")
+        usuario_logado = page.client_storage.get("usuario_logado")     
         if not usuario_logado:
             usuario_logado = "usuário"
         

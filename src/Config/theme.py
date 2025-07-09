@@ -2,7 +2,10 @@ light_theme = {
     "PRIMARY_COLOR": "#2563EB", 
     "PRIMARY_HOVER": "#1D4ED8",
     "BACKGROUND": "#F9FAFB",
-    "CARD": "#FFFFFF",
+    "CARD": "#F3F4F6",
+    "CARD_DARK": "#2d2d2d",
+    "BORDER": "#404040",
+    "ON_PRIMARY": "#FFFFFF",
     "TEXT": "#1F2937",
     "TEXT_SECONDARY": "#6B7280",
     "ERROR": "#EF4444",
@@ -15,13 +18,15 @@ dark_theme = {
     "PRIMARY_HOVER": "#2563EB",
     "BACKGROUND": "#111827",
     "CARD": "#1F2937",
+    "CARD_DARK": "#2d2d2d",
+    "BORDER": "#404040",
+    "ON_PRIMARY": "#FFFFFF",
     "TEXT": "#F9FAFB",
     "TEXT_SECONDARY": "#9CA3AF",
     "ERROR": "#F87171",
-    "BACKGROUNDSCREEN": "#0F172A",
+    "BACKGROUNDSCREEN": "#151A27",
     "BLACK": "#FFFFFF",
 }
-
 
 current_theme = light_theme
 

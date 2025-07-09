@@ -1,7 +1,8 @@
-import flet as ft
 import os
+import flet as ft
 from src.Config import theme
 from src.Components.notificacao import notificacao
+from src.Controllers.loginController import realizarLogin
 
 def LoginPage(page: ft.Page):
     print("🟢 Tela Login carregada")
@@ -13,55 +14,58 @@ def LoginPage(page: ft.Page):
         usuario = input_usuario.value.strip()
         senha = input_senha.value.strip()
 
+        if not usuario or not senha:
+            notificacao(page, "Campos obrigatórios", "Preencha todos os campos.", "erro")
+            return
+
         botao_entrar.disabled = True
-        botao_entrar.text = "Acessando..."
+        botao_entrar.text = "Acessando.."
         botao_entrar.bgcolor = theme.current_theme["TEXT_SECONDARY"]
         page.update()
 
-        if usuario == "" and senha == "":
-            notificacao(
-                page,
-                titulo="Login realizado",
-                mensagem="Você entrou no sistema com sucesso!",
-                tipo="sucesso"
-            )
+        async def login_task():
+            try:
+                data = await realizarLogin(page, usuario, senha)
+                if data and "data" in data and "id" in data["data"]:
+                    usuario_id = str(data["data"]["id"])
+                    usuario_nome = data["data"]["usuario"]
+                    # Salve em atributo do page
+                    page.usuario_id = usuario_id
+                    page.usuario_logado = usuario_nome
+                    print("DEBUG Login - usuario_id salvo:", usuario_id)
+                    page.go("/dashboard")
+                else:
+                    notificacao(page, "Erro de login", "Usuário ou senha inválidos.", "erro")
+                    print("DEBUG Login - resposta inválida:", data)
+            except Exception as ex:
+                notificacao(page, "Erro inesperado", str(ex), "erro")
+                print("DEBUG Login - exceção:", ex)
+            finally:
+                resetarBotao()
 
-            page.client_storage.set("usuario_logado", usuario)
-            
-            def navegar_apos_delay():
-                page.go("/dashboard")
-            
-            import threading
-            timer = threading.Timer(2.5, navegar_apos_delay)
-            timer.start()
-            
-        else:
-            botao_entrar.disabled = False
-            botao_entrar.text = "Entrar"
-            botao_entrar.bgcolor = theme.current_theme["PRIMARY_COLOR"]
-            texto_erro.visible = True
-            input_usuario.focus()
-            page.update()
+        page.run_task(login_task)
+        
+    def resetarBotao():
+        botao_entrar.disabled = False
+        botao_entrar.text = "Entrar"
+        botao_entrar.bgcolor = theme.current_theme["PRIMARY_COLOR"]
+        page.update()
 
-    def on_enter_pressed(e):
-        entrar()
+    def onEnterPressed(e):
+        entrar(e)
 
-    def on_usuario_change(e):
-        if texto_erro.visible:
-            texto_erro.visible = False
-            page.update()
+    def onUsuarioChange(e):
+        page.update()
 
-    def on_senha_change(e):
-        if texto_erro.visible:
-            texto_erro.visible = False
-            page.update()
+    def onSenhaChange(e):
+        page.update()
     
-    def toggle_password_visibility(e):
+    def togglePasswordVisibility(e):
         input_senha.password = not input_senha.password
         input_senha.suffix_icon = ft.IconButton(
-            icon="visibility_off" if input_senha.password else "visibility",  # Corrigido: usar strings
+            icon="visibility_off" if input_senha.password else "visibility",
             icon_color="black",
-            on_click=toggle_password_visibility,
+            on_click=togglePasswordVisibility,
             tooltip="Mostrar/Ocultar senha"
         )
         page.update()
@@ -72,7 +76,6 @@ def LoginPage(page: ft.Page):
         card_container.bgcolor = theme.current_theme["CARD"]
         titulo_texto.color = theme.current_theme["TEXT"]
         botao_entrar.bgcolor = theme.current_theme["PRIMARY_COLOR"]
-        texto_erro.color = theme.current_theme["ERROR"]
         
         input_usuario.bgcolor = theme.current_theme["BACKGROUNDSCREEN"]
         input_usuario.color = theme.current_theme["TEXT"]
@@ -87,9 +90,9 @@ def LoginPage(page: ft.Page):
         input_senha.prefix_icon = ft.Icon(name="lock", color=theme.current_theme["TEXT"])
         
         input_senha.suffix_icon = ft.IconButton(
-            icon="visibility_off" if input_senha.password else "visibility",  # Corrigido: usar strings
+            icon="visibility_off" if input_senha.password else "visibility",
             icon_color="black", 
-            on_click=toggle_password_visibility,
+            on_click=togglePasswordVisibility,
             tooltip="Mostrar/Ocultar senha"
         )
         
@@ -111,8 +114,8 @@ def LoginPage(page: ft.Page):
         border_color=theme.current_theme["TEXT_SECONDARY"],
         focused_border_color=theme.current_theme["PRIMARY_COLOR"],
         prefix_icon=icone_usuario,
-        on_submit=on_enter_pressed, 
-        on_change=on_usuario_change,
+        on_submit=onEnterPressed, 
+        on_change=onUsuarioChange,
         autofocus=True,
         text_size=14,
         label_style=ft.TextStyle(color=theme.current_theme["TEXT_SECONDARY"]),
@@ -131,24 +134,16 @@ def LoginPage(page: ft.Page):
         focused_border_color=theme.current_theme["PRIMARY_COLOR"],
         prefix_icon=icone_senha,
         suffix_icon=ft.IconButton(
-            icon="visibility_off",  # Corrigido: usar string em vez de ft.icons.VISIBILITY_OFF
+            icon="visibility_off",
             icon_color="black",
-            on_click=toggle_password_visibility,
+            on_click=togglePasswordVisibility,
             tooltip="Mostrar/Ocultar senha"
         ),
-        on_submit=on_enter_pressed,
-        on_change=on_senha_change,
+        on_submit=onEnterPressed,
+        on_change=onSenhaChange,
         text_size=14,
         label_style=ft.TextStyle(color=theme.current_theme["TEXT_SECONDARY"]),
         cursor_color=theme.current_theme["PRIMARY_COLOR"]
-    )
-
-    texto_erro = ft.Text(
-        "Usuário ou senha inválidos.",
-        color=theme.current_theme["ERROR"],
-        visible=False,
-        size=12,
-        weight="w500"
     )
 
     titulo_texto = ft.Text(
@@ -203,8 +198,6 @@ def LoginPage(page: ft.Page):
                 ft.Container(height=4),  
                 input_senha,
                 ft.Container(height=8),  
-                texto_erro,
-                ft.Container(height=8),  
                 botao_entrar,
                 ft.Container(height=4),
             ],
@@ -221,9 +214,7 @@ def LoginPage(page: ft.Page):
     )
 
     layout = ft.Stack(
-        controls=[
-            main_area,
-        ],
+        controls=[main_area],
         expand=True
     )
 
@@ -240,3 +231,4 @@ def LoginPage(page: ft.Page):
         padding=0,
         spacing=0
     )
+

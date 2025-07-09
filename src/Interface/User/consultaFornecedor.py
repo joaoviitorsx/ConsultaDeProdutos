@@ -1,10 +1,9 @@
-import os
+import asyncio
 import flet as ft
+import aiohttp
 from src.Config import theme
 from src.Components.notificacao import notificacao
 from src.Components.headerApp import HeaderApp
-from src.Components.section import footer 
-import asyncio
 
 def ConsultaFornecedorPage(page: ft.Page):
     print("🟣 Tela Consulta Fornecedor carregada")
@@ -14,8 +13,10 @@ def ConsultaFornecedorPage(page: ft.Page):
 
     th = theme.current_theme
     fornecedor_data = {}
+    
+    API_BASE_URL = "http://localhost:8000/api"
 
-    def on_theme_change(novo_tema):
+    def onThemeChange(novo_tema):
         nonlocal th
         th = theme.current_theme
         page.bgcolor = th["BACKGROUNDSCREEN"]
@@ -23,15 +24,14 @@ def ConsultaFornecedorPage(page: ft.Page):
         if hasattr(page, 'views') and page.views:
             page.views[-1].bgcolor = th["BACKGROUNDSCREEN"]
         
-        # Atualizar o header
         header_container.content = HeaderApp(
             page, 
             titulo_tela="Consultar Fornecedor", 
-            on_theme_changed=on_theme_change, 
+            on_theme_changed=onThemeChange, 
             mostrar_voltar=True,
-            mostrar_logo=False,           
-            mostrar_nome_empresa=False,   
-            mostrar_usuario=False         
+            mostrar_logo=False,        
+            mostrar_nome_empresa=False,
+            mostrar_usuario=True
         )
         
         cnpj_field.bgcolor = th["CARD"]
@@ -50,13 +50,59 @@ def ConsultaFornecedorPage(page: ft.Page):
         content=HeaderApp(
             page, 
             titulo_tela="Consultar Fornecedor", 
-            on_theme_changed=on_theme_change, 
+            on_theme_changed=onThemeChange, 
             mostrar_voltar=True,
             mostrar_logo=False,           
             mostrar_nome_empresa=False,  
-            mostrar_usuario=False         
+            mostrar_usuario=True         
         )
     )
+
+    def formatarCnpj(value):
+        digits = ''.join(filter(str.isdigit, value))
+        if len(digits) <= 2:
+            return digits
+        elif len(digits) <= 5:
+            return f"{digits[:2]}.{digits[2:]}"
+        elif len(digits) <= 8:
+            return f"{digits[:2]}.{digits[2:5]}.{digits[5:]}"
+        elif len(digits) <= 12:
+            return f"{digits[:2]}.{digits[2:5]}.{digits[5:8]}/{digits[8:]}"
+        else:
+            return f"{digits[:2]}.{digits[2:5]}.{digits[5:8]}/{digits[8:12]}-{digits[12:14]}"
+
+    def validateCnpj(cnpj):
+        digits = ''.join(filter(str.isdigit, cnpj))
+        return len(digits) == 14
+
+    def onCnpjChange(e):
+        formatted = formatarCnpj(e.control.value)
+        cnpj_field.value = formatted
+        page.update()
+
+    def onEnterPressed(e):
+        buscarFornecedor(e)
+
+    def buscarFornecedor(e):
+        cnpj = cnpj_field.value.strip()
+        
+        if not validateCnpj(cnpj):
+            notificacao(
+                page,
+                titulo="CNPJ inválido",
+                mensagem="Por favor, digite um CNPJ com 14 dígitos numéricos.",
+                tipo="erro"
+            )
+            resultado_container.visible = False
+            page.update()
+            return
+
+        status_text.visible = False
+        loader.visible = True
+        resultado_container.visible = False
+        page.update()
+
+        page.run_task(buscarFornecedorApi, cnpj)
 
     cnpj_field = ft.TextField(
         label="CNPJ",
@@ -68,7 +114,10 @@ def ConsultaFornecedorPage(page: ft.Page):
         color=th["TEXT"],
         border_color=th["TEXT_SECONDARY"],
         hint_style=ft.TextStyle(color=th["TEXT_SECONDARY"]),
-        max_length=18
+        max_length=18,
+        on_change=onCnpjChange,
+        on_submit=onEnterPressed, 
+        autofocus=True 
     )
 
     status_text = ft.Text(value="", color=th["ERROR"], visible=False, size=12)
@@ -90,7 +139,7 @@ def ConsultaFornecedorPage(page: ft.Page):
                     text_align="center"
                 ),
                 ft.Text(
-                    "Digite um CNPJ válido acima e clique em buscar.",
+                    "Digite um CNPJ válido acima e pressione Enter ou clique em buscar.",
                     size=14,
                     color=th["TEXT_SECONDARY"],
                     text_align="center"
@@ -103,112 +152,108 @@ def ConsultaFornecedorPage(page: ft.Page):
         )
     )
 
-    def format_cnpj(value):
-        digits = ''.join(filter(str.isdigit, value))
-        if len(digits) <= 2:
-            return digits
-        elif len(digits) <= 5:
-            return f"{digits[:2]}.{digits[2:]}"
-        elif len(digits) <= 8:
-            return f"{digits[:2]}.{digits[2:5]}.{digits[5:]}"
-        elif len(digits) <= 12:
-            return f"{digits[:2]}.{digits[2:5]}.{digits[5:8]}/{digits[8:]}"
-        else:
-            return f"{digits[:2]}.{digits[2:5]}.{digits[5:8]}/{digits[8:12]}-{digits[12:14]}"
-
-    def validate_cnpj(cnpj):
-        digits = ''.join(filter(str.isdigit, cnpj))
-        return len(digits) == 14
-
-    def on_cnpj_change(e):
-        formatted = format_cnpj(e.control.value)
-        cnpj_field.value = formatted
-        page.update()
-
-    cnpj_field.on_change = on_cnpj_change
-
-    def buscar_fornecedor(e):
-        cnpj = cnpj_field.value.strip()
+    async def buscarFornecedorApi(cnpj):
+        try:
+            cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
+            url = f"{API_BASE_URL}/consulta-fornecedor/{cnpj_limpo}"
+            
+            timeout = aiohttp.ClientTimeout(total=30)
+            
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        response_data = await response.json()
+                        data = response_data.get("data", {})
+                        
+                        fornecedor_data.update({
+                            "cnpj": formatarCnpj(data.get("cnpj", cnpj_limpo)),
+                            "razao": data.get("razao_social", "Não informado"),
+                            "uf": data.get("uf", "N/A"),
+                            "regime": data.get("regime_tributario", "Não informado"),
+                            "cnae": data.get("cnae", "N/A"),
+                            "simples": data.get("simples", False),
+                            "isento": data.get("isento", False),
+                        })
+                        
+                        preencherResultado()
+                        loader.visible = False
+                        resultado_container.visible = True
+                        
+                        notificacao(
+                            page,
+                            titulo="Fornecedor encontrado",
+                            mensagem="Dados carregados com sucesso!",
+                            tipo="sucesso"
+                        )
+                        
+                        if fornecedor_data["regime"] != "Simples Nacional":
+                            notificacao(
+                                page,
+                                titulo="Atenção ao regime tributário",
+                                mensagem=f"Fornecedor no regime {fornecedor_data['regime']}. Verifique as alíquotas.",
+                                tipo="alerta"
+                            )
+                        
+                        if fornecedor_data["isento"]:
+                            notificacao(
+                                page,
+                                titulo="Fornecedor isento",
+                                mensagem="Este fornecedor é isento de ICMS conforme Decreto 29.560/08.",
+                                tipo="info"
+                            )
+                            
+                    elif response.status == 404:
+                        mostrarErro("Fornecedor não encontrado", "CNPJ não localizado na base de dados.")
+                    elif response.status == 400:
+                        mostrarErro("CNPJ inválido", "Formato de CNPJ inválido.")
+                    else:
+                        error_detail = await response.text()
+                        mostrarErro("Erro no servidor", f"Erro {response.status}. Tente novamente.")
+                        
+        except aiohttp.ClientError as e:
+            mostrarErro("Erro de conexão", "Não foi possível conectar ao servidor. Verifique se a API está rodando.")
+            print(f"[ERRO] Conexão: {e}")
+        except asyncio.TimeoutError:
+            mostrarErro("Timeout", "A consulta demorou muito para responder. Tente novamente.")
+        except Exception as e:
+            mostrarErro("Erro inesperado", f"Erro: {str(e)}")
+            print(f"[ERRO] Inesperado: {e}")
         
-        if not validate_cnpj(cnpj):
-            notificacao(
-                page,
-                titulo="CNPJ inválido",
-                mensagem="Por favor, digite um CNPJ com 14 dígitos numéricos.",
-                tipo="erro"
-            )
-            resultado_container.visible = False
-            page.update()
-            return
-
-        status_text.visible = False
-        loader.visible = True
-        resultado_container.visible = False
         page.update()
 
-        page.run_task(simular_busca, cnpj)
-
-    async def simular_busca(cnpj):
-        await asyncio.sleep(2)
-
-        if cnpj == "12.345.678/0000-09":
-            fornecedor_data.update({
-                "cnpj": "54.616.173/0001-68",
-                "razao": "EMPRESA EXEMPLO LTDA",
-                "fantasia": "Exemplo Corp",
-                "uf": "SP",
-                "regime": "Simples Nacional",
-                "cnae": "4712-1/00",
-                "desc": "Comércio varejista de mercadorias em geral",
-                "simples": True,
-                "isento": False,
-            })
-        else:
-            import random
-            regime = "Simples Nacional" if random.random() > 0.5 else "Lucro Real"
-
-            fornecedor_data.update({
-                "cnpj": cnpj,
-                "razao": "EMPRESA EXEMPLO LTDA",
-                "fantasia": "Exemplo Corp",
-                "uf": "SP",
-                "regime": regime,
-                "cnae": "4712-1/00",
-                "desc": "Comércio varejista de mercadorias em geral",
-                "simples": regime == "Simples Nacional",
-                "isento": random.random() > 0.8,
-            })
-
-        preencher_resultado()
+    def mostrarErro(titulo, mensagem):
         loader.visible = False
         resultado_container.visible = True
-
-        notificacao(
-            page,
-            titulo="Fornecedor encontrado",
-            mensagem="Dados carregados com sucesso!",
-            tipo="sucesso"
+        resultado_container.content = ft.Container(
+            content=ft.Column([
+                ft.Container(
+                    content=ft.Icon(name="error", size=64, color=th["ERROR"]),
+                    margin=ft.margin.only(bottom=16)
+                ),
+                ft.Text(
+                    titulo,
+                    size=18,
+                    weight="bold",
+                    color=th["ERROR"],
+                    text_align="center"
+                ),
+                ft.Text(
+                    mensagem,
+                    size=14,
+                    color=th["TEXT_SECONDARY"],
+                    text_align="center"
+                )
+            ],
+            spacing=8,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+            padding=80,
+            border_radius=12,
+            alignment=ft.alignment.center
         )
+        
+        notificacao(page, titulo, mensagem, tipo="erro")
 
-        if fornecedor_data["regime"] == "Lucro Real":
-            notificacao(
-                page,
-                titulo="Atenção ao regime tributário",
-                mensagem="Fornecedor no regime Lucro Real. Verifique as alíquotas com cuidado.",
-                tipo="alerta"
-            )
-
-        if fornecedor_data["isento"]:
-            notificacao(
-                page,
-                titulo="Fornecedor isento",
-                mensagem="Este fornecedor é isento de ICMS conforme Decreto 29.560/08.",
-                tipo="info"
-            )
-
-        page.update()
-
-    def preencher_resultado():
+    def preencherResultado():
         cor_regime = "#22c55e" if fornecedor_data["simples"] else "#3b82f6"
         texto_regime = fornecedor_data["regime"]
 
@@ -253,27 +298,20 @@ def ConsultaFornecedorPage(page: ft.Page):
                             ], spacing=4)
                         ),
                         ft.Container(
-                            col={"sm": 12, "md": 6},
+                            col={"sm": 12, "md": 12},  # ALTERADO: Ocupa toda a largura
                             content=ft.Column([
                                 ft.Text("Razão Social", color=th["TEXT_SECONDARY"], size=12, weight="bold"),
                                 ft.Text(fornecedor_data["razao"], color=th["TEXT"], size=14)
                             ], spacing=4)
                         ),
-                        ft.Container(
-                            col={"sm": 12, "md": 6},
-                            content=ft.Column([
-                                ft.Text("Nome Fantasia", color=th["TEXT_SECONDARY"], size=12, weight="bold"),
-                                ft.Text(fornecedor_data["fantasia"], color=th["TEXT"], size=14)
-                            ], spacing=4)
-                        ),
+                        # REMOVIDO: Nome Fantasia
                         ft.Container(
                             col={"sm": 12},
                             content=ft.Column([
                                 ft.Text("CNAE Principal", color=th["TEXT_SECONDARY"], size=12, weight="bold"),
                                 ft.Row([
                                     ft.Icon(name="description", color=th["TEXT_SECONDARY"], size=16),
-                                    ft.Text(f'{fornecedor_data["cnae"]} - {fornecedor_data["desc"]}', 
-                                           color=th["TEXT"], size=14)
+                                    ft.Text(fornecedor_data["cnae"], color=th["TEXT"], size=14)  # REMOVIDO: descrição
                                 ], spacing=4)
                             ], spacing=4)
                         )
@@ -323,7 +361,7 @@ def ConsultaFornecedorPage(page: ft.Page):
                         content=ft.Row([
                             ft.Icon(name="search", size=28, color="white"),
                         ], spacing=4),
-                        on_click=buscar_fornecedor,
+                        on_click=buscarFornecedor,
                         bgcolor=th["PRIMARY_COLOR"],
                         color="white",
                         style=ft.ButtonStyle(
@@ -334,7 +372,6 @@ def ConsultaFornecedorPage(page: ft.Page):
                     ),
                     loader
                 ], spacing=12, alignment=ft.MainAxisAlignment.START),
-                
                 status_text
             ], spacing=8)
         )

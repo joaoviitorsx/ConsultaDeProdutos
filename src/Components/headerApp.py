@@ -22,11 +22,17 @@ def HeaderApp(
     mostrar_divider=False,
     cor_fundo=None,
     altura_customizada=None,
-    expand=False,                    # MUDANÇA: padrão False
-    largura_maxima=None,            # NOVO: para limitar largura
-    margin_horizontal=None          # NOVO: margem lateral
+    expand=False,                    
+    largura_maxima=None,            
+    margin_horizontal=None          
 ):
-    usuario = page.client_storage.get("usuario_logado")
+    usuario_id = getattr(page, "usuario_id", "0")
+    is_admin = str(usuario_id) == "1"
+
+    usuario = getattr(page, "usuario_logado", None)
+
+    #print("DEBUG HeaderApp - usuario_id:", usuario_id, "is_admin:", is_admin)
+
     if not usuario:
         usuario = "usuário"
     
@@ -66,11 +72,16 @@ def HeaderApp(
 
     controles_direita = []
     
-    if mostrar_usuario:
+    if mostrar_usuario and is_admin:
         controles_direita.append(
-            ft.Text(f"Olá, {usuario.capitalize()}", size=14, color=th["TEXT"], weight="bold")
+            ft.IconButton(
+                icon="SETTINGS",
+                icon_color=th["TEXT_SECONDARY"],
+                tooltip="Acessar painel de administração",
+                on_click=lambda e: page.go("/admin_dashboard")
+            )
         )
-    
+
     if botoes_customizados:
         controles_direita.extend(botoes_customizados)
     
@@ -150,3 +161,4 @@ def HeaderAlinhado(page: ft.Page, titulo="", on_theme_changed=None, **kwargs):
         largura_maxima=None,
         **kwargs
     )
+
