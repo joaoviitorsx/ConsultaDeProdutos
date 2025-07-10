@@ -29,7 +29,6 @@ def LoginPage(page: ft.Page):
                 if data and "data" in data and "id" in data["data"]:
                     usuario_id = str(data["data"]["id"])
                     usuario_nome = data["data"]["usuario"]
-                    # Salve em atributo do page
                     page.usuario_id = usuario_id
                     page.usuario_logado = usuario_nome
                     print("DEBUG Login - usuario_id salvo:", usuario_id)

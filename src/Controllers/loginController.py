@@ -1,13 +1,13 @@
 
 import os
 import jwt
-from pydantic import BaseModel
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from src.Services.loginService import autenticar
 from src.Components.notificacao import notificacao
 from fastapi import APIRouter, HTTPException, Depends
 from src.Services.loginService import verificarCredenciais
+from src.Models.loginModel import LoginRequest, LoginResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 load_dotenv()
@@ -18,16 +18,6 @@ security = HTTPBearer()
 SECRET_KEY = os.getenv("JWT_KEY", "jwt_token")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 8 
-
-class LoginRequest(BaseModel):
-    usuario: str
-    senha: str
-
-class LoginResponse(BaseModel):
-    success: bool
-    message: str
-    data: dict = None
-    token: str = None
 
 async def realizarLogin(page, usuario, senha):
         status, data = await autenticar(usuario, senha)

@@ -1,4 +1,5 @@
 import os
+import json
 import flet as ft
 from src.Config import theme
 from src.Components.headerApp import HeaderApp
@@ -35,12 +36,11 @@ def DashboardPage(page: ft.Page):
         page.update()
 
     def update_dashboard_content():
-        usuario_logado = page.client_storage.get("usuario_logado")     
-        if not usuario_logado:
-            usuario_logado = "usuário"
-        
-        main_content.controls = [
-            welcomeSection(usuario_logado, page),
+        usuario_logado = page.client_storage.get("usuario_logado")
+        print("DEBUG usuario_logado:", usuario_logado)
+        main_content.controls.clear()
+        main_content.controls.extend([
+        welcomeSection(usuario_logado, page),
         
             ft.Container(height=40),
             
@@ -59,7 +59,7 @@ def DashboardPage(page: ft.Page):
             
             ft.Container(height=40),
             footer()
-        ]
+        ])
         page.update()
 
     header_container = ft.Container(

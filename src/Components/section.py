@@ -4,8 +4,14 @@ import datetime
 
 def welcomeSection(usuario_logado, page=None):
     th = theme.current_theme
-    
-    # Obter saudação baseada no horário
+    print("DEBUG chamada welcomeSection:", usuario_logado)
+
+    if isinstance(usuario_logado, dict):
+        print("Bem-vindo(a) de volta, usuário logado:", usuario_logado)
+        nome = usuario_logado.get("razaoSocial", "usuário")
+    else:
+        nome = usuario_logado or "usuário"
+
     def get_greeting():
         hora = datetime.datetime.now().hour
         if 5 <= hora < 12:
@@ -15,7 +21,6 @@ def welcomeSection(usuario_logado, page=None):
         else:
             return "Boa noite"
     
-    # Obter data formatada
     def get_formatted_date():
         hoje = datetime.datetime.now()
         dias_semana = [
@@ -34,62 +39,6 @@ def welcomeSection(usuario_logado, page=None):
         
         return f"{dia_semana}, {dia} de {mes} de {ano}"
     
-    # Função para ações rápidas
-    def ir_para_consulta(e):
-        if page:
-            page.go("/consulta_fornecedor")
-    
-    def ir_para_produtos(e):
-        if page:
-            page.go("/consulta_produtos")
-    
-    def ir_para_relatorios(e):
-        if page:
-            page.go("/relatorios")
-    
-    # Criar ações rápidas
-    acoes_rapidas = ft.Row([
-        ft.Container(
-            content=ft.Column([
-                ft.Icon("search", color=th["PRIMARY_COLOR"], size=24),
-                ft.Text("Nova Consulta", size=12, color=th["TEXT"], weight="w500")
-            ], spacing=4, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-            padding=12,
-            border_radius=12,
-            bgcolor=th["CARD"],
-            border=ft.border.all(1, th["PRIMARY_COLOR"]),
-            on_click=ir_para_consulta,
-            tooltip="Consultar novo fornecedor",
-            ink=True
-        ),
-        ft.Container(
-            content=ft.Column([
-                ft.Icon("inventory", color="#F03E3E", size=24),
-                ft.Text("Produtos", size=12, color=th["TEXT"], weight="w500")
-            ], spacing=4, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-            padding=12,
-            border_radius=12,
-            bgcolor=th["CARD"],
-            border=ft.border.all(1, "#F03E3E"),
-            on_click=ir_para_produtos,
-            tooltip="Comparar produtos",
-            ink=True
-        ),
-        ft.Container(
-            content=ft.Column([
-                ft.Icon("assessment", color="#00C897", size=24),
-                ft.Text("Relatórios", size=12, color=th["TEXT"], weight="w500")
-            ], spacing=4, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-            padding=12,
-            border_radius=12,
-            bgcolor=th["CARD"],
-            border=ft.border.all(1, "#00C897"),
-            on_click=ir_para_relatorios,
-            tooltip="Ver relatórios",
-            ink=True
-        ),
-    ], spacing=16, alignment=ft.MainAxisAlignment.CENTER)
-    
     return ft.Container(
         content=ft.Column([
             ft.Container(
@@ -97,7 +46,7 @@ def welcomeSection(usuario_logado, page=None):
                     ft.Column([
                         ft.Row([
                             ft.Text(
-                                f"{get_greeting()}, {usuario_logado.capitalize()}!", 
+                                f"{get_greeting()}, {nome.capitalize()}!",
                                 size=36, 
                                 weight="bold", 
                                 color=th["TEXT"]
@@ -123,31 +72,10 @@ def welcomeSection(usuario_logado, page=None):
                 padding=ft.padding.all(32),
                 border_radius=20,
                 bgcolor=th["CARD"],
-                #border=ft.border.all(1, th["TEXT_SECONDARY"] + "20"),
             ),
             
             ft.Container(height=24),
         ], spacing=0),
-        margin=ft.margin.only(bottom=32)
-    )
-
-def welcomeSectionSimple(usuario_logado):
-    th = theme.current_theme
-    
-    return ft.Container(
-        content=ft.Column([
-            ft.Text(
-                f"Bem-vindo, {usuario_logado.capitalize()}", 
-                size=32, 
-                weight="bold", 
-                color=th["TEXT"]
-            ),
-            ft.Text(
-                "O que você deseja fazer hoje?", 
-                size=18, 
-                color=th["TEXT_SECONDARY"]
-            ),
-        ], spacing=8),
         margin=ft.margin.only(bottom=32)
     )
 
