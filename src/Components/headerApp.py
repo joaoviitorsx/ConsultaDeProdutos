@@ -36,7 +36,7 @@ def HeaderApp(
     if not usuario:
         usuario = "usuário"
     
-    th = theme.current_theme
+    th = theme.get_theme()
 
     def logout(e):
         page.go("/login")

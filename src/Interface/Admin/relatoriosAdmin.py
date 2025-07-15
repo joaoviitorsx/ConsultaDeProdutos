@@ -3,7 +3,7 @@ from src.Config import theme
 from src.Components.adminLayout import AdminLayout
 
 def RelatoriosAdminContent(page):
-    th = theme.current_theme
+    th = theme.get_theme()
     return ft.Column([
         ft.Text("Relatórios Administrativos", size=22, weight="bold", color=th["TEXT"]),
         ft.Text("Visualize e gere relatórios administrativos do sistema.", size=14, color=th["TEXT_SECONDARY"]),
@@ -14,7 +14,7 @@ def RelatoriosAdminContent(page):
 
 def RelatorioPage(page: ft.Page):
     print("🛠️ Tela Relatorios carregada")
-    th = theme.current_theme
+    th = theme.get_theme()
     main_content = RelatorioPage(page)
     return ft.View(
         route="/admin/relatorios",

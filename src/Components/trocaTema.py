@@ -6,6 +6,7 @@ def ThemeToggle(page: ft.Page, on_theme_changed=None):
     def is_dark():
         return page.theme_mode == ft.ThemeMode.DARK
 
+    th = theme.get_theme()
     current_mode = is_dark()
 
     sun_icon = ft.Container(
@@ -55,7 +56,7 @@ def ThemeToggle(page: ft.Page, on_theme_changed=None):
     track = ft.Container(
         width=54,
         height=28,
-        bgcolor=theme.current_theme["CARD"],
+        bgcolor=th["CARD"],
         border_radius=28,
         border=ft.border.all(
             width=2,
@@ -75,26 +76,19 @@ def ThemeToggle(page: ft.Page, on_theme_changed=None):
         height=24,
         left=2 if not current_mode else 28,
         top=2,
-        content=ft.Stack([
-            sun_icon,
-            moon_icon
-        ]),
+        content=ft.Stack([sun_icon, moon_icon]),
         animate_position=Animation(500, AnimationCurve.EASE_IN_OUT_CUBIC_EMPHASIZED),
     )
 
     glow_effect = ft.Container(
         width=54,
         height=28,
-        bgcolor=f"{'#FFB30015' if not current_mode else '#3F51B515'}",
+        bgcolor="#FFB30015" if not current_mode else "#3F51B515",
         border_radius=28,
         animate=Animation(400, AnimationCurve.EASE_IN_OUT),
     )
 
-    toggle_stack = ft.Stack([
-        glow_effect,
-        track,
-        slider_icon
-    ])
+    toggle_stack = ft.Stack([glow_effect, track, slider_icon])
 
     toggle_container = ft.Container(
         width=58,
@@ -105,7 +99,7 @@ def ThemeToggle(page: ft.Page, on_theme_changed=None):
         bgcolor="transparent",
         animate=Animation(300, AnimationCurve.EASE_IN_OUT),
         tooltip="Alternar tema",
-        ink=True,  # Efeito ripple
+        ink=True,
         on_hover=lambda e: on_hover(e),
     )
 
@@ -119,7 +113,6 @@ def ThemeToggle(page: ft.Page, on_theme_changed=None):
                 offset=ft.Offset(0, 6)
             )
         else:
-            # Mouse leave
             toggle_container.scale = 1.0
             track.shadow = ft.BoxShadow(
                 spread_radius=0,
@@ -134,16 +127,16 @@ def ThemeToggle(page: ft.Page, on_theme_changed=None):
         theme.set_theme(novo_modo)
         page.theme_mode = ft.ThemeMode.LIGHT if novo_modo == "light" else ft.ThemeMode.DARK
 
+        th = theme.get_theme()
         is_dark_mode = is_dark()
 
-        track.bgcolor = theme.current_theme["CARD"]
+        track.bgcolor = th["CARD"]
         track.border = ft.border.all(
             width=2,
             color="#3F51B5" if is_dark_mode else "#FFB300"
         )
 
-        glow_effect.bgcolor = f"{'#3F51B515' if is_dark_mode else '#FFB30015'}"
-
+        glow_effect.bgcolor = "#3F51B515" if is_dark_mode else "#FFB30015"
         slider_icon.left = 28 if is_dark_mode else 2
 
         sun_icon.opacity = 0.0 if is_dark_mode else 1.0

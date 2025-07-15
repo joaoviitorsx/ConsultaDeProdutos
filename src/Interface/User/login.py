@@ -7,8 +7,7 @@ from src.Controllers.loginController import realizarLogin
 def LoginPage(page: ft.Page):
     print("🟢 Tela Login carregada")
 
-    page.bgcolor = theme.current_theme["BACKGROUNDSCREEN"]
-    page.window_bgcolor = theme.current_theme["BACKGROUNDSCREEN"]
+    th = theme.apply_theme(page)
 
     def entrar(e=None):
         usuario = input_usuario.value.strip()
@@ -19,106 +18,83 @@ def LoginPage(page: ft.Page):
             return
 
         botao_entrar.disabled = True
-        botao_entrar.text = "Acessando.."
-        botao_entrar.bgcolor = theme.current_theme["TEXT_SECONDARY"]
+        botao_entrar.text = "Acessando..."
+        botao_entrar.bgcolor = th["TEXT_SECONDARY"]
         page.update()
 
         async def login_task():
             try:
                 data = await realizarLogin(page, usuario, senha)
                 if data and "data" in data and "id" in data["data"]:
-                    usuario_id = str(data["data"]["id"])
-                    usuario_nome = data["data"]["usuario"]
-                    page.usuario_id = usuario_id
-                    page.usuario_logado = usuario_nome
-                    print("DEBUG Login - usuario_id salvo:", usuario_id)
+                    page.usuario_id = str(data["data"]["id"])
+                    page.usuario_logado = data["data"]["usuario"]
+                    print("DEBUG Login - usuário_id salvo:", page.usuario_id)
                     page.go("/dashboard")
                 else:
-                    notificacao(page, "Erro de login", "Usuário ou senha inválidos.", "erro")
-                    print("DEBUG Login - resposta inválida:", data)
+                    return
             except Exception as ex:
                 notificacao(page, "Erro inesperado", str(ex), "erro")
                 print("DEBUG Login - exceção:", ex)
             finally:
-                resetarBotao()
+                resetar_botao()
 
         page.run_task(login_task)
-        
-    def resetarBotao():
+
+    def resetar_botao():
         botao_entrar.disabled = False
         botao_entrar.text = "Entrar"
-        botao_entrar.bgcolor = theme.current_theme["PRIMARY_COLOR"]
+        botao_entrar.bgcolor = theme.get_theme()["PRIMARY_COLOR"]
         page.update()
 
-    def onEnterPressed(e):
-        entrar(e)
-
-    def onUsuarioChange(e):
-        page.update()
-
-    def onSenhaChange(e):
-        page.update()
-    
     def togglePasswordVisibility(e):
         input_senha.password = not input_senha.password
+        atualizar_theme_fields()
+
+    def atualizar_theme_fields():
+        th = theme.get_theme()
+
+        page.bgcolor = th["BACKGROUNDSCREEN"]
+        page.window_bgcolor = th["BACKGROUNDSCREEN"]
+
+        card_container.bgcolor = th["CARD"]
+        titulo_texto.color = th["TEXT"]
+        botao_entrar.bgcolor = th["PRIMARY_COLOR"]
+
+        input_usuario.bgcolor = th["BACKGROUNDSCREEN"]
+        input_usuario.color = th["TEXT"]
+        input_usuario.border_color = th["TEXT_SECONDARY"]
+        input_usuario.focused_border_color = th["PRIMARY_COLOR"]
+        input_usuario.prefix_icon = ft.Icon(name="person", color=th["TEXT"])
+        input_usuario.label_style = ft.TextStyle(color=th["TEXT_SECONDARY"])
+        input_usuario.cursor_color = th["PRIMARY_COLOR"]
+
+        input_senha.bgcolor = th["BACKGROUNDSCREEN"]
+        input_senha.color = th["TEXT"]
+        input_senha.border_color = th["TEXT_SECONDARY"]
+        input_senha.focused_border_color = th["PRIMARY_COLOR"]
+        input_senha.prefix_icon = ft.Icon(name="lock", color=th["TEXT"])
         input_senha.suffix_icon = ft.IconButton(
             icon="visibility_off" if input_senha.password else "visibility",
             icon_color="black",
             on_click=togglePasswordVisibility,
             tooltip="Mostrar/Ocultar senha"
         )
-        page.update()
+        input_senha.label_style = ft.TextStyle(color=th["TEXT_SECONDARY"])
+        input_senha.cursor_color = th["PRIMARY_COLOR"]
 
-    def on_theme_change(novo_tema):
-        page.bgcolor = theme.current_theme["BACKGROUNDSCREEN"]
-        page.window_bgcolor = theme.current_theme["BACKGROUNDSCREEN"]
-        card_container.bgcolor = theme.current_theme["CARD"]
-        titulo_texto.color = theme.current_theme["TEXT"]
-        botao_entrar.bgcolor = theme.current_theme["PRIMARY_COLOR"]
-        
-        input_usuario.bgcolor = theme.current_theme["BACKGROUNDSCREEN"]
-        input_usuario.color = theme.current_theme["TEXT"]
-        input_usuario.border_color = theme.current_theme["TEXT_SECONDARY"]
-        input_usuario.focused_border_color = theme.current_theme["PRIMARY_COLOR"]
-        input_usuario.prefix_icon = ft.Icon(name="person", color=theme.current_theme["TEXT"])
-        
-        input_senha.bgcolor = theme.current_theme["BACKGROUNDSCREEN"]
-        input_senha.color = theme.current_theme["TEXT"]
-        input_senha.border_color = theme.current_theme["TEXT_SECONDARY"]
-        input_senha.focused_border_color = theme.current_theme["PRIMARY_COLOR"]
-        input_senha.prefix_icon = ft.Icon(name="lock", color=theme.current_theme["TEXT"])
-        
-        input_senha.suffix_icon = ft.IconButton(
-            icon="visibility_off" if input_senha.password else "visibility",
-            icon_color="black", 
-            on_click=togglePasswordVisibility,
-            tooltip="Mostrar/Ocultar senha"
-        )
-        
         if hasattr(page, 'views') and page.views:
-            page.views[-1].bgcolor = theme.current_theme["BACKGROUNDSCREEN"]
-        
-        page.update()
+            page.views[-1].bgcolor = th["BACKGROUNDSCREEN"]
 
-    icone_usuario = ft.Icon(name="person", color=theme.current_theme["TEXT"])
-    icone_senha = ft.Icon(name="lock", color=theme.current_theme["TEXT"])
+        page.update()
 
     input_usuario = ft.TextField(
         label="Usuário",
         hint_text="Digite seu usuário",
         width=320,
-        border_radius=theme.CARD_RADIUS,
-        bgcolor=theme.current_theme["BACKGROUNDSCREEN"],
-        color=theme.current_theme["TEXT"],
-        border_color=theme.current_theme["TEXT_SECONDARY"],
-        focused_border_color=theme.current_theme["PRIMARY_COLOR"],
-        prefix_icon=icone_usuario,
-        on_submit=onEnterPressed, 
-        on_change=onUsuarioChange,
+        border_radius=theme.STYLE["CARD_RADIUS"],
+        on_submit=entrar,
+        on_change=lambda e: page.update(),
         autofocus=True,
-        text_size=14,
-        label_style=ft.TextStyle(color=theme.current_theme["TEXT_SECONDARY"]),
-        cursor_color=theme.current_theme["PRIMARY_COLOR"]
     )
 
     input_senha = ft.TextField(
@@ -126,23 +102,9 @@ def LoginPage(page: ft.Page):
         hint_text="Digite sua senha",
         password=True,
         width=320,
-        border_radius=theme.CARD_RADIUS,
-        bgcolor=theme.current_theme["BACKGROUNDSCREEN"],
-        color=theme.current_theme["TEXT"],
-        border_color=theme.current_theme["TEXT_SECONDARY"],
-        focused_border_color=theme.current_theme["PRIMARY_COLOR"],
-        prefix_icon=icone_senha,
-        suffix_icon=ft.IconButton(
-            icon="visibility_off",
-            icon_color="black",
-            on_click=togglePasswordVisibility,
-            tooltip="Mostrar/Ocultar senha"
-        ),
-        on_submit=onEnterPressed,
-        on_change=onSenhaChange,
-        text_size=14,
-        label_style=ft.TextStyle(color=theme.current_theme["TEXT_SECONDARY"]),
-        cursor_color=theme.current_theme["PRIMARY_COLOR"]
+        border_radius=theme.STYLE["CARD_RADIUS"],
+        on_submit=entrar,
+        on_change=lambda e: page.update()
     )
 
     titulo_texto = ft.Text(
@@ -150,23 +112,18 @@ def LoginPage(page: ft.Page):
         size=24,
         weight="bold",
         text_align="center",
-        color=theme.current_theme["TEXT"],
-        style=ft.TextStyle(
-            font_family="Roboto",
-            letter_spacing=0.5,
-            height=1.2
-        )
+        style=ft.TextStyle(font_family="Roboto", letter_spacing=0.5, height=1.2)
     )
 
     botao_entrar = ft.ElevatedButton(
         "Entrar",
         on_click=entrar,
-        bgcolor=theme.current_theme["PRIMARY_COLOR"],
-        color="white",
         width=180,
         height=48,
+        bgcolor=th["PRIMARY_COLOR"],
+        color=th["ON_PRIMARY"], 
         style=ft.ButtonStyle(
-            shape=ft.RoundedRectangleBorder(radius=theme.CARD_RADIUS),
+            shape=ft.RoundedRectangleBorder(radius=theme.STYLE["CARD_RADIUS"]),
             text_style=ft.TextStyle(weight="bold", size=16),
             elevation=3,
             animation_duration=200
@@ -179,55 +136,32 @@ def LoginPage(page: ft.Page):
         width=420,
         height=580,
         padding=30,
-        bgcolor=theme.current_theme["CARD"],
-        border_radius=theme.CARD_RADIUS,
-        shadow=ft.BoxShadow(
-            blur_radius=40,         
-            spread_radius=8,         
-            color="#00000030",       
-            offset=ft.Offset(0, 12)  
-        ),
+        border_radius=theme.STYLE["CARD_RADIUS"],
+        shadow=ft.BoxShadow(blur_radius=40, spread_radius=8, color="#00000030", offset=ft.Offset(0, 12)),
         content=ft.Column(
             controls=[
                 ft.Image(src=logo, width=380, height=140),
-                ft.Container(height=8),  
-                titulo_texto,
-                ft.Container(height=8),  
-                input_usuario,
-                ft.Container(height=4),  
-                input_senha,
-                ft.Container(height=8),  
-                botao_entrar,
+                ft.Container(height=8), titulo_texto,
+                ft.Container(height=8), input_usuario,
+                ft.Container(height=4), input_senha,
+                ft.Container(height=8), botao_entrar,
                 ft.Container(height=4),
             ],
             alignment=ft.MainAxisAlignment.CENTER,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=12, 
+            spacing=12
         )
     )
 
-    main_area = ft.Container(
-        content=card_container,
-        alignment=ft.alignment.center,
-        expand=True
-    )
+    main_area = ft.Container(content=card_container, alignment=ft.alignment.center, expand=True)
+    layout = ft.Stack(controls=[main_area], expand=True)
 
-    layout = ft.Stack(
-        controls=[main_area],
-        expand=True
-    )
-
-    def inicializar_pagina():
-        page.update()
-    
-    import threading
-    threading.Timer(0.1, inicializar_pagina).start()
+    atualizar_theme_fields()
 
     return ft.View(
         route="/login",
         controls=[layout],
-        bgcolor=theme.current_theme["BACKGROUNDSCREEN"],
+        bgcolor=theme.get_theme()["BACKGROUNDSCREEN"],
         padding=0,
         spacing=0
     )
-

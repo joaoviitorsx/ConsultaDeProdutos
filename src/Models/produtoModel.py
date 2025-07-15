@@ -1,24 +1,34 @@
-import sqlalchemy
+from sqlalchemy import create_engine, Column, Integer, String, Float, DECIMAL
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
+Base = declarative_base()
+
+class Produto(Base):
+    __tablename__ = 'produtos'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    empresa_id = Column(Integer, nullable=False)
+    codigo = Column(String(32), nullable=False)
+    produto = Column(String(40), nullable=False)
+    ncm = Column(String(8), nullable=False)
+    aliquota = Column(DECIMAL(5, 2), nullable=False)
 
 class ProdutoModel:
-    def __init__(self, db_path):
-        self.db_path = db_path
+    def __init__(self, db_url):
+        self.engine = create_engine(db_url)
+        self.Session = sessionmaker(bind=self.engine)
 
     def buscarCodigo(self, codigoProduto):
-        conexao = sqlalchemy.connect(self.db_path)
-        cursor = conexao.cursor()
-        cursor.execute(
-            "SELECT id, empresa_id, codigo, produto, ncm, aliquota FROM Produtos WHERE codigo = ?",
-            (codigoProduto,)
-        )
-        row = cursor.fetchone()
-        conexao.close()
-        if row:
+        session = self.Session()
+        produto = session.query(Produto).filter_by(codigo=codigoProduto).first()
+        session.close()
+        if produto:
             return {
-                "id": row[0],
-                "empresa_id": row[1],
-                "produto": row[2],
-                "ncm": row[3],
-                "aliquota": row[4]
+                "id": produto.id,
+                "empresa_id": produto.empresa_id,
+                "codigo": produto.codigo,
+                "produto": produto.produto,
+                "ncm": produto.ncm,
+                "aliquota": produto.aliquota
             }
         return None

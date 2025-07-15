@@ -24,7 +24,7 @@ def CardSection(
     on_hover=None,
     estilo_customizado=None
 ):
-    th = theme.current_theme
+    th = theme.get_theme()
     
     configs_padrao = {
         "action": {
@@ -362,7 +362,7 @@ def DashboardCards(page: ft.Page, estilo="horizontal", **kwargs):
             "titulo": "Consultar Fornecedor",
             "descricao": "Dados cadastrais, situação fiscal e isenções",
             "icone": "business_center",
-            "cor": theme.current_theme["PRIMARY_COLOR"],
+            "cor": theme.get_theme()["PRIMARY_COLOR"],
             "rota": "/consulta_fornecedor",
             "features": ["Dados cadastrais", "Situação fiscal", "Status de isenção"]
         },

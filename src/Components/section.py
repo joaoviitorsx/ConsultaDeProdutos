@@ -3,7 +3,7 @@ from src.Config import theme
 import datetime
 
 def welcomeSection(usuario_logado, page=None):
-    th = theme.current_theme
+    th = theme.get_theme()
     print("DEBUG chamada welcomeSection:", usuario_logado)
 
     if isinstance(usuario_logado, dict):
@@ -80,7 +80,7 @@ def welcomeSection(usuario_logado, page=None):
     )
 
 def titleSection(titulo, subtitulo=None):
-    th = theme.current_theme
+    th = theme.get_theme()
     
     controls = [
         ft.Text(
@@ -106,7 +106,7 @@ def titleSection(titulo, subtitulo=None):
     )
 
 def footer():
-    th = theme.current_theme
+    th = theme.get_theme()
     
     return ft.Container(
         content=ft.Column([

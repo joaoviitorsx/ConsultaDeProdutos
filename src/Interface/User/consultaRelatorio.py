@@ -9,7 +9,7 @@ import time
 def ConsultaRelatorioPage(page: ft.Page):
     print("🟡 Tela Consulta Relatórios carregada")
     
-    th = theme.current_theme
+    th = theme.get_theme()
     page.bgcolor = th["BACKGROUNDSCREEN"]
     page.window_bgcolor = th["BACKGROUNDSCREEN"]
     
@@ -20,7 +20,7 @@ def ConsultaRelatorioPage(page: ft.Page):
 
     def on_theme_change(novo_tema):
         nonlocal th
-        th = theme.current_theme
+        th = theme.get_theme()
         page.bgcolor = th["BACKGROUNDSCREEN"]
         page.window_bgcolor = th["BACKGROUNDSCREEN"]
 

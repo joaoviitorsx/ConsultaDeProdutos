@@ -1,38 +1,10 @@
 import flet as ft
 from src.Config import theme
+from src.Utils.validadores import formatarCnpj, formatarValorInput
 
-def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_processar, on_remover) -> ft.Card:
-    th = theme.current_theme
+def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_processar, on_remover, valido=True) -> ft.Card:
+    th = theme.get_theme()
 
-    def format_cnpj(value):
-        digits = ''.join(filter(str.isdigit, value))
-        if len(digits) <= 2:
-            return digits
-        elif len(digits) <= 5:
-            return f"{digits[:2]}.{digits[2:]}"
-        elif len(digits) <= 8:
-            return f"{digits[:2]}.{digits[2:5]}.{digits[5:]}"
-        elif len(digits) <= 12:
-            return f"{digits[:2]}.{digits[2:5]}.{digits[5:8]}/{digits[8:]}"
-        else:
-            return f"{digits[:2]}.{digits[2:5]}.{digits[5:8]}/{digits[8:12]}-{digits[12:14]}"
-
-    def format_valor_input(value):
-        # Remove tudo que não é dígito, vírgula ou ponto
-        cleaned = ''.join(c for c in value if c.isdigit() or c in '.,')
-        
-        # Se tem vírgula, mantém apenas a última
-        if ',' in cleaned:
-            parts = cleaned.split(',')
-            if len(parts) > 2:
-                cleaned = parts[0] + ',' + ''.join(parts[1:])
-            # Limita casas decimais a 2
-            if len(parts) == 2 and len(parts[1]) > 2:
-                cleaned = parts[0] + ',' + parts[1][:2]
-        
-        return cleaned
-
-    # Campos que serão criados
     cnpj_field = None
     codigo_field = None
     valor_field = None
@@ -40,42 +12,36 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
     status_container = None
     validation_messages = {"cnpj": "", "codigo": "", "valor": ""}
 
-    def on_cnpj_change(e):
-        cnpj_formatado = format_cnpj(e.control.value)
-        fornecedor["cnpj"] = cnpj_formatado
-        e.control.value = cnpj_formatado
-        on_update(index, "cnpj", cnpj_formatado)
-        validar_campos()
-        e.page.update()
+    def onCnpjChange(e):
+        formatado = formatarCnpj(e.control.value)
+        e.control.value = formatado
+        fornecedor["cnpj"] = formatado
+        on_update(index, "cnpj", formatado)
+        validarCampos()
     
-    def on_codigo_change(e):
+    def onCodigoChange(e):
         codigo_limpo = ''.join(filter(str.isdigit, e.control.value))
         fornecedor["codigo_produto"] = codigo_limpo
         e.control.value = codigo_limpo
         on_update(index, "codigo_produto", codigo_limpo)
-        validar_campos()
+        validarCampos()
         e.page.update()
     
-    def on_valor_change(e):
-        valor_formatado = format_valor_input(e.control.value)
+    def onValorChange(e):
+        valor_formatado = formatarValorInput(e.control.value)
         fornecedor["valor_produto"] = valor_formatado
         e.control.value = valor_formatado
         on_update(index, "valor_produto", valor_formatado)
-        validar_campos()
+        validarCampos()
         e.page.update()
     
-    def validar_campos():
-        # Validar CNPJ
+    def validarCampos():
         cnpj_digits = fornecedor["cnpj"].replace(".", "").replace("/", "").replace("-", "")
         cnpj_valido = len(cnpj_digits) == 14
-        
-        # Validar código
+
         codigo_valido = len(fornecedor["codigo_produto"]) > 0
-        
-        # Validar valor
         valor_valido = len(fornecedor["valor_produto"]) > 0
         
-        # Atualizar mensagens de validação
         if fornecedor["cnpj"] and not cnpj_valido:
             validation_messages["cnpj"] = "CNPJ deve ter 14 dígitos"
         else:
@@ -90,13 +56,11 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
             validation_messages["valor"] = "Valor é obrigatório"
         else:
             validation_messages["valor"] = ""
-        
-        # Atualizar estado do botão processar
+
         if botao_processar:
             todos_validos = cnpj_valido and codigo_valido and valor_valido
             botao_processar.disabled = fornecedor["processando"] or not todos_validos
             
-            # Atualizar visual do botão
             if fornecedor["processando"]:
                 botao_processar.bgcolor = th.get("WARNING", "#F59E0B")
             elif todos_validos:
@@ -104,7 +68,6 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
             else:
                 botao_processar.bgcolor = th["TEXT_SECONDARY"]
         
-        # Feedback visual nos campos
         if cnpj_field:
             if fornecedor["cnpj"]:
                 cnpj_field.border_color = th.get("SUCCESS", "#10B981") if cnpj_valido else th.get("ERROR", "#EF4444")
@@ -129,10 +92,9 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
                 valor_field.border_color = th["TEXT_SECONDARY"]
                 valor_field.error_text = None
         
-        # Atualizar status
-        atualizar_status()
+        atualizarStatus()
 
-    def atualizar_status():
+    def atualizarStatus():
         if not status_container:
             return
             
@@ -165,41 +127,39 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
             status_text = "Aguardando dados"
             status_icon = ft.Icon("info", color=status_color, size=14)
         
-        # Atualizar o container de status
         status_container.content = ft.Row([
             status_icon,
             ft.Text(status_text, color=status_color, size=12, weight="w500")
         ], spacing=6)
 
-    # Campos do formulário com melhor design
     cnpj_field = ft.TextField(
         label="CNPJ da Empresa",
         hint_text="00.000.000/0000-00",
         value=fornecedor["cnpj"],
-        on_change=on_cnpj_change,
+        on_change=onCnpjChange,
         max_length=18,
-        bgcolor=th["BACKGROUNDSCREEN"],  # Cor de fundo do campo
-        color=th["TEXT"],  # Cor do texto
-        border_color=th["TEXT_SECONDARY"],  # Cor da borda
-        focused_border_color=th["PRIMARY_COLOR"],  # Cor da borda quando focado
+        bgcolor=th["BACKGROUNDSCREEN"],
+        color=th["TEXT"],
+        border_color=th["TEXT_SECONDARY"],
+        focused_border_color=th["PRIMARY_COLOR"],
         prefix_icon="business",
         border_radius=12,
         content_padding=ft.padding.symmetric(horizontal=16, vertical=12),
         text_size=14,
-        label_style=ft.TextStyle(color=th["TEXT_SECONDARY"], size=12),  # Cor do label
-        hint_style=ft.TextStyle(color=th["TEXT_SECONDARY"]),  # Cor do hint
-        cursor_color=th["PRIMARY_COLOR"]  # Cor do cursor
+        label_style=ft.TextStyle(color=th["TEXT_SECONDARY"], size=12),
+        hint_style=ft.TextStyle(color=th["TEXT_SECONDARY"]),
+        cursor_color=th["PRIMARY_COLOR"]
     )
 
     codigo_field = ft.TextField(
         label="Código do Produto",
         hint_text="Digite o código numérico",
         value=fornecedor["codigo_produto"],
-        on_change=on_codigo_change,
-        bgcolor=th["BACKGROUNDSCREEN"],  # Ajustar cor de fundo
-        color=th["TEXT"],  # Ajustar cor do texto
-        border_color=th["TEXT_SECONDARY"],  # Ajustar cor da borda
-        focused_border_color=th["PRIMARY_COLOR"],  # Ajustar cor da borda focada
+        on_change=onCodigoChange,
+        bgcolor=th["BACKGROUNDSCREEN"],
+        color=th["TEXT"],
+        border_color=th["TEXT_SECONDARY"],
+        focused_border_color=th["PRIMARY_COLOR"],
         prefix_icon="qr_code_2",
         border_radius=12,
         content_padding=ft.padding.symmetric(horizontal=16, vertical=12),
@@ -213,7 +173,7 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
         label="Valor do Produto (R$)",
         hint_text="100,00",
         value=fornecedor["valor_produto"],
-        on_change=on_valor_change,
+        on_change=onValorChange,
         bgcolor=th["BACKGROUNDSCREEN"],  # Ajustar cor de fundo
         color=th["TEXT"],  # Ajustar cor do texto
         border_color=th["TEXT_SECONDARY"],  # Ajustar cor da borda
@@ -228,7 +188,6 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
         cursor_color=th["PRIMARY_COLOR"]
     )
     
-    # Botão processar com design melhorado
     botao_processar = ft.ElevatedButton(
         content=ft.Row([
             ft.ProgressRing(width=18, height=18, stroke_width=2, color="white") if fornecedor["processando"] else ft.Icon(name="calculate", size=18, color="white"),
@@ -314,8 +273,7 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
         margin=ft.margin.symmetric(vertical=16)
     )
     
-    # Validação inicial
-    validar_campos()
+    validarCampos()
     
     return ft.Card(
         elevation=4,

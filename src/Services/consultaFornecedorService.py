@@ -5,7 +5,7 @@ from src.Utils.validadores import removedorCaracteres
 async def buscarFornecedorCnpj(cnpj: str) -> dict | None:
     cnpj = removedorCaracteres(cnpj)
     
-    print(f"[🔍] Buscando {cnpj} na API...")
+    print(f"[🔍] Buscando {cnpj} na API")
     resultado = await buscarInformacoesApi(cnpj)
     
     if resultado and len(resultado) == 5:

@@ -8,3 +8,6 @@ bcrypt
 PyJWT
 python-multipart
 sqlalchemy
+pymysql
+httpx
+uvicorn

@@ -11,7 +11,7 @@ from src.Components.adminLayout import AdminLayout
 from src.Config import theme
 
 def main(page: ft.Page):
-    theme.set_theme("dark" if page.theme_mode == ft.ThemeMode.DARK else "light")
+    theme.set_theme("light")
     page.window_icon = "images/icone.ico"
 
     def route_change(e):

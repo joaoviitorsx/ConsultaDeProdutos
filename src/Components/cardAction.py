@@ -3,6 +3,7 @@ from src.Config import theme
 
 def ActionCard(page: ft.Page, title, description, icon_path, button_color, rota, features):
     hover_scale = ft.Scale(1)
+    th = theme.get_theme()
 
     def on_hover(e):
         hover_scale.scale = 1.04 if e.data == "true" else 1
@@ -19,7 +20,7 @@ def ActionCard(page: ft.Page, title, description, icon_path, button_color, rota,
             elevation=15,
             content=ft.Container(
                 padding=32,
-                bgcolor=theme.current_theme["CARD"],
+                bgcolor=th["CARD"],
                 border_radius=16,
                 scale=hover_scale,
                 animate_scale=ft.Animation(300, curve="easeInOut"),
@@ -30,13 +31,13 @@ def ActionCard(page: ft.Page, title, description, icon_path, button_color, rota,
                         alignment=ft.alignment.center,
                         padding=ft.padding.only(bottom=12)
                     ),
-                    ft.Text(title, size=18, weight="bold", color=theme.current_theme["TEXT"], text_align=ft.TextAlign.CENTER),
-                    ft.Text(description, size=13, color=theme.current_theme["TEXT_SECONDARY"], text_align=ft.TextAlign.CENTER),
+                    ft.Text(title, size=18, weight="bold", color=th["TEXT"], text_align=ft.TextAlign.CENTER),
+                    ft.Text(description, size=13, color=th["TEXT_SECONDARY"], text_align=ft.TextAlign.CENTER),
                     ft.Container(
                         content=ft.Column([
                             ft.Row([
                                 ft.Icon(name="check_circle", size=16, color="#22c55e"),
-                                ft.Text(f, size=12, color=theme.current_theme["TEXT_SECONDARY"])
+                                ft.Text(f, size=12, color=th["TEXT_SECONDARY"])
                             ]) for f in features
                         ], spacing=6),
                         padding=ft.padding.symmetric(vertical=12)

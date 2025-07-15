@@ -4,77 +4,69 @@ import flet as ft
 from src.Config import theme
 from src.Components.headerApp import HeaderApp
 from src.Components.cardSection import DashboardCards
-from src.Components.section import welcomeSection, titleSection, footer 
+from src.Components.section import welcomeSection, titleSection, footer
 
 def DashboardPage(page: ft.Page):
-    print("🟠 tela Dashboard carregada")
+    print("🟠 Tela Dashboard carregada")
 
-    page.bgcolor = theme.current_theme["BACKGROUNDSCREEN"]
-    page.window_bgcolor = theme.current_theme["BACKGROUNDSCREEN"]
+    th = theme.apply_theme(page)
 
-    th = theme.current_theme
+    header_container = ft.Container()
+    main_content = ft.Column([], spacing=0, expand=True)
 
-    def on_theme_change(novo_tema):
-        nonlocal th
-        th = theme.current_theme
-        
-        header_container.content = HeaderApp(
-            page, 
-            on_theme_changed=on_theme_change,
-            mostrar_voltar=False,
-            expand=False,
-            mostrar_divider=True
-        )
-        
-        update_dashboard_content()
-        
+    def onThemeChange(novo_tema):
+        theme.set_theme(novo_tema)
+        th = theme.get_theme()
+
         page.bgcolor = th["BACKGROUNDSCREEN"]
         page.window_bgcolor = th["BACKGROUNDSCREEN"]
         if hasattr(page, 'views') and page.views:
             page.views[-1].bgcolor = th["BACKGROUNDSCREEN"]
-        
+
+        header_container.content = HeaderApp(
+            page, 
+            on_theme_changed=onThemeChange,
+            mostrar_voltar=False,
+            expand=False,
+            mostrar_divider=False
+        )
+
+        updateDashboardContent()
         page.update()
 
-    def update_dashboard_content():
-        usuario_logado = page.client_storage.get("usuario_logado")
-        print("DEBUG usuario_logado:", usuario_logado)
+    def updateDashboardContent():
+        usuarioLogado = page.client_storage.get("usuario_logado")
+        print("DEBUG usuario_logado:", usuarioLogado)
+
         main_content.controls.clear()
         main_content.controls.extend([
-        welcomeSection(usuario_logado, page),
-        
+            welcomeSection(usuarioLogado, page),
             ft.Container(height=40),
-            
             titleSection("Módulos Disponíveis", "Acesse as funcionalidades do sistema"),
-            
             DashboardCards(
                 page,
                 estilo="horizontal",
                 animacao=True,
-                spacing=24, 
+                spacing=24,
                 run_spacing=24,
-                padding_card=8,    
-                border_radius=16,   
-                altura_customizada=180  
+                padding_card=8,
+                border_radius=16,
+                altura_customizada=180
             ),
-            
             ft.Container(height=40),
             footer()
         ])
         page.update()
 
-    header_container = ft.Container(
-        content=HeaderApp(
-            page, 
-            on_theme_changed=on_theme_change,
-            mostrar_voltar=False,
-            expand=False,
-            mostrar_divider=True
-        )
+    header_container.content = HeaderApp(
+        page,
+        on_theme_changed=onThemeChange,
+        mostrar_voltar=False,
+        expand=False,
+        mostrar_divider=False
     )
 
-    main_content = ft.Column([], spacing=0, expand=True)
-    
-    update_dashboard_content()
+    updateDashboardContent()
 
     return ft.View(
         route="/dashboard",
@@ -82,16 +74,15 @@ def DashboardPage(page: ft.Page):
             ft.Column([
                 ft.Container(
                     content=header_container,
-                    padding=ft.padding.symmetric(horizontal=24), 
-                    width=None 
+                    padding=ft.padding.symmetric(horizontal=24)
                 ),
                 ft.Container(
-                    content=main_content, 
+                    content=main_content,
                     padding=ft.padding.symmetric(horizontal=24, vertical=16),
                     expand=True
                 )
             ])
         ],
         scroll=ft.ScrollMode.ADAPTIVE,
-        bgcolor=th["BACKGROUNDSCREEN"]
+        bgcolor=theme.get_theme()["BACKGROUNDSCREEN"]
     )

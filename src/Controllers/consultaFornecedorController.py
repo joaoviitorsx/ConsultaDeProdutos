@@ -7,15 +7,15 @@ router = APIRouter()
 @router.get("/consulta-fornecedor/{cnpj}")
 async def consulta_fornecedor(cnpj: str):
     try:
-        cnpj_limpo = removedorCaracteres(cnpj)
+        cnpjLimpo = removedorCaracteres(cnpj)
         
-        if not validarCnpj(cnpj_limpo):
+        if not validarCnpj(cnpjLimpo):
             raise HTTPException(
                 status_code=400, 
                 detail="CNPJ inválido: deve conter 14 dígitos numéricos"
             )
 
-        fornecedor = await buscarFornecedorCnpj(cnpj_limpo)
+        fornecedor = await buscarFornecedorCnpj(cnpjLimpo)
         
         if not fornecedor:
             raise HTTPException(

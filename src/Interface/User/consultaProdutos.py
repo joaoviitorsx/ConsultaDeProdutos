@@ -1,33 +1,43 @@
+import asyncio
 import flet as ft
 from src.Config import theme
-from src.Components.cardResultado import CardResultado
-from src.Components.cardFornecedor import CardFornecedor
-from src.Components.notificacao import notificacao
 from src.Components.headerApp import HeaderApp
-import time
-import threading
+from src.Components.notificacao import notificacao
+from src.Components.cardResultado import CardResultado, melhorOpcao
+from src.Components.cardFornecedor import CardFornecedor
+from src.Services.consultaProdutosService import buscarFornecedorApi, buscarProdutoApi, calcularImposto  
+from src.Utils.validadores import formatador
 
 def ConsultaProdutosPage(page: ft.Page):
     print("🔵 Tela Consulta Produtos carregada")
-    
-    th = theme.current_theme
+
+    theme.apply_theme(page)
+    th = theme.get_theme()
 
     page.bgcolor = th["BACKGROUNDSCREEN"]
     page.window_bgcolor = th["BACKGROUNDSCREEN"]
-    
+
     fornecedores_data = [{"id": "1", "cnpj": "", "codigo_produto": "", "valor_produto": "", "processando": False}]
     resultados_data = []
     processamento_global = False
 
+    def atualizar():
+        atualizarPaineisTema()
+        atualizarPainelFornecedor()
+        atualizarResultados()
+
+
     def onThemeChange(novo_tema):
         nonlocal th
-        th = theme.current_theme
+        theme.set_theme(novo_tema)
+        th = theme.get_theme()
+
         page.bgcolor = th["BACKGROUNDSCREEN"]
         page.window_bgcolor = th["BACKGROUNDSCREEN"]
 
         if hasattr(page, 'views') and page.views:
             page.views[-1].bgcolor = th["BACKGROUNDSCREEN"]
-        
+
         header_container.content = HeaderApp(
             page, 
             titulo_tela="Consultar Produtos", 
@@ -36,10 +46,7 @@ def ConsultaProdutosPage(page: ft.Page):
             mostrar_logo=False,        
             mostrar_nome_empresa=False 
         )
-        atualizar_paineis_tema()
-        atualizar_painel_fornecedores()
-        atualizar_resultados()
-        
+        atualizar()
         page.update()
 
     header_container = ft.Container(
@@ -52,76 +59,16 @@ def ConsultaProdutosPage(page: ft.Page):
             mostrar_nome_empresa=False
         )
     )
-
-    def format_currency(valor):
-        return f"R$ {valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
     
-    def simular_dados_fornecedor(cnpj):
-        dados_mock = {
-            "11.222.333/0001-81": {"razao": "Tech Solutions LTDA", "fantasia": "TechSol", "regime": "Simples Nacional"},
-            "44.555.666/0001-82": {"razao": "Comercial ABC S/A", "fantasia": "ABC Corp", "regime": "Lucro Real"},
-            "77.888.999/0001-83": {"razao": "Industria XYZ LTDA", "fantasia": "XYZ Ind", "regime": "Simples Nacional"},
-            "12.345.678/0001-90": {"razao": "Distribuidora DEF ME", "fantasia": "DEF Dist", "regime": "Simples Nacional"}
-        }
-        
-        return dados_mock.get(cnpj, {
-            "razao": "Empresa Exemplo LTDA",
-            "fantasia": "Exemplo Corp", 
-            "regime": "Simples Nacional"
-        })
-    
-    def calcular_impostos(fornecedor):
-        time.sleep(1.5)
-        
-        try:
-            valor = float(fornecedor["valor_produto"].replace(',', '.'))
-        except:
-            raise ValueError("Valor inválido")
-            
-        dados = simular_dados_fornecedor(fornecedor["cnpj"])
-        
-        is_simples = dados["regime"] == "Simples Nacional"
-        aliquota_icms = 12 if is_simples else 18
-        aliquota_pis = 0 if is_simples else 1.65
-        aliquota_cofins = 0 if is_simples else 7.6
-        adicional = 0 if is_simples else 3
-        
-        icms = (valor * aliquota_icms) / 100
-        pis = (valor * aliquota_pis) / 100
-        cofins = (valor * aliquota_cofins) / 100
-        valor_adicional = (valor * adicional) / 100
-        valor_total = valor + icms + pis + cofins + valor_adicional
-
-        isento = fornecedor["codigo_produto"] in ["12345", "99999"]
-        
-        return {
-            "id": fornecedor["id"],
-            "cnpj": fornecedor["cnpj"],
-            "razao": dados["razao"],
-            "fantasia": dados["fantasia"],
-            "regime": dados["regime"],
-            "valor_produto": valor,
-            "icms": 0 if isento else icms,
-            "pis": 0 if isento else pis,
-            "cofins": 0 if isento else cofins,
-            "adicional": 0 if isento else valor_adicional,
-            "valor_total": valor if isento else valor_total,
-            "aliquota_icms": aliquota_icms,
-            "aliquota_pis": aliquota_pis,
-            "aliquota_cofins": aliquota_cofins,
-            "isento": isento,
-            "melhor_opcao": False
-        }
-    
-    def atualizar_fornecedor(index, campo, valor):
+    def atualizarFornecedor(index, campo, valor):
         if index < len(fornecedores_data):
             fornecedores_data[index][campo] = valor
             page.update()
     
-    def atualizar_paineis_tema():
-        nonlocal painel_fornecedores, resultados_card, titulo_secao, botao_processar_todos
-        
-        th = theme.current_theme
+    def atualizarPaineisTema():
+        nonlocal painel_fornecedores, resultados_card, titulo_secao
+
+        th = theme.get_theme()
 
         titulo_secao.content = ft.Column([
             ft.Text("Comparação de Fornecedores", 
@@ -130,13 +77,10 @@ def ConsultaProdutosPage(page: ft.Page):
                 size=18, color=th["TEXT_SECONDARY"]),
         ], spacing=8)
         
-        botao_processar_todos.bgcolor = th.get("SUCCESS", "#10B981")
-        
         painel_fornecedores.content = ft.Container(
             bgcolor=th["CARD"],
             padding=24,
             border_radius=12,
-            height=700,
             content=ft.Column([
                 ft.Row([
                     ft.Row([
@@ -151,29 +95,20 @@ def ConsultaProdutosPage(page: ft.Page):
                         border_radius=4
                     )
                 ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                
                 ft.Text("Adicione até 4 fornecedores para comparar impostos e valores", 
                     color=th["TEXT_SECONDARY"], size=14),
-                
                 ft.Container(height=16),
-                
                 ft.Container(
-                    content=ft.Column([fornecedores_container], scroll=ft.ScrollMode.AUTO),
-                    height=520, 
+                    content=ft.Column([fornecedores_container], scroll=ft.ScrollMode.AUTO, expand=True),
+                    expand=True
                 ),
-                ft.Container(
-                    content=botao_processar_todos,
-                    margin=ft.margin.only(top=16),
-                    height=48
-                )
-            ], spacing=16)
+            ], spacing=16, expand=True)
         )
-        
+
         resultados_card.content = ft.Container(
             bgcolor=th["CARD"],
             padding=24,
             border_radius=12,
-            height=700,
             content=ft.Column([
                 ft.Row([
                     ft.Icon(name="assessment", color=th.get("SUCCESS", "#10B981"), size=24),
@@ -187,65 +122,87 @@ def ConsultaProdutosPage(page: ft.Page):
                         visible=len(resultados_data) > 0
                     )
                 ], spacing=12),
-                
                 ft.Container(height=16),
-                
                 ft.Container(
-                    content=ft.Column([painel_resultados], scroll=ft.ScrollMode.AUTO),
-                    height=620,
+                    content=ft.Column([painel_resultados], scroll=ft.ScrollMode.AUTO, expand=True),
+                    expand=True
                 )
-            ], spacing=16)
+            ], spacing=16, expand=True)
         )
 
-    def processar_fornecedor(fornecedor_id):
+    async def processarFornecedor(fornecedor_id):
         fornecedor = next((f for f in fornecedores_data if f["id"] == fornecedor_id), None)
         if not fornecedor or not all([fornecedor["cnpj"], fornecedor["codigo_produto"], fornecedor["valor_produto"]]):
-            notificacao(page, "Atenção", "Preencha todos os campos antes de processar!", "alerta")
             return
-        
+
         if len(fornecedor["cnpj"].replace(".", "").replace("/", "").replace("-", "")) != 14:
-            notificacao(page, "CNPJ Inválido", "O CNPJ deve ter 14 dígitos", "erro")
+            notificacao(page, "CNPJ Inválido", "O CNPJ informado está incompleto ou inválido.", "alerta")
             return
-        
-        for f in fornecedores_data:
-            if f["id"] == fornecedor_id:
-                f["processando"] = True
-                break
-        atualizar_painel_fornecedores()
-        
-        def processar():
-            try:
-                resultado = calcular_impostos(fornecedor)
-                
-                nonlocal resultados_data
-                resultados_data = [r for r in resultados_data if r["id"] != fornecedor_id]
-                resultados_data.append(resultado)
-                
-                if len(resultados_data) > 1:
-                    min_total = min(r["valor_total"] for r in resultados_data)
-                    for r in resultados_data:
-                        r["melhor_opcao"] = r["valor_total"] == min_total
-                else:
-                    resultados_data[0]["melhor_opcao"] = True
-                
-                notificacao(page, "Sucesso", f"Fornecedor #{fornecedor_id} processado com sucesso!", "sucesso")
-                
-                atualizar_paineis_tema()
-                atualizar_resultados()
-                
-            except Exception as e:
-                notificacao(page, "Erro", f"Erro ao processar fornecedor: {str(e)}", "erro")
-                print(f"Erro ao processar fornecedor: {e}")
-            finally:
-                for f in fornecedores_data:
-                    if f["id"] == fornecedor_id:
-                        f["processando"] = False
-                        break
-                atualizar_painel_fornecedores()
-        
-        threading.Thread(target=processar).start()
+
+        fornecedor["processando"] = True
+        atualizarPainelFornecedor()
+
+        try:
+            fornecedor_api = await buscarFornecedorApi(fornecedor["cnpj"])
+            produto_api = await buscarProdutoApi(fornecedor["codigo_produto"])
+            regime = fornecedor_api.get("regime_tributario", "Lucro Real")
+            decreto = fornecedor_api.get("isento", False)
+            valor_produto = float(fornecedor["valor_produto"].replace(',', '.'))
+
+            resultado_api = await calcularImposto(
+                codigo_produto=fornecedor["codigo_produto"],
+                valor_produto=valor_produto,
+                regime=regime,
+                decreto=decreto
+            )
+
+            resultado = {
+                "id": fornecedor["id"],
+                "cnpj": fornecedor["cnpj"],
+                "razao": fornecedor_api.get("razao_social"),
+                "fantasia": fornecedor_api.get("nome_fantasia"),
+                "regime": regime,
+                "valor_produto": valor_produto,
+                "valor_final": resultado_api.get("valor_final", valor_produto),
+                "aliquota_aplicada": resultado_api.get("aliquota_aplicada", False),
+                "adicional_aplicado": resultado_api.get("adicional_simples", 0) > 0,
+                "uf": fornecedor_api.get("uf", ""),
+                "decreto": decreto,
+                "melhor_opcao": False,
+                # Dados do produto:
+                "nome_produto": produto_api.get("produto", ""),
+                "ncm": produto_api.get("ncm", ""),
+                "aliquota_banco": produto_api.get("aliquota", ""),
+                # Detalhes dos impostos:
+                "percentual_aliquota": str(produto_api.get("aliquota", "")),
+                "valor_aliquota": resultado_api.get("icms", 0),
+                "percentual_adicional": "3" if regime.lower() == "simples nacional" else "0",
+                "valor_adicional_simples": resultado_api.get("adicional_simples", 0),
+            }
+
+            nonlocal resultados_data
+            resultados_data = [r for r in resultados_data if r["id"] != fornecedor_id]
+            resultados_data.append(resultado)
+
+            if len(resultados_data) > 1:
+                min_total = min(r.get("valor_final", 0) for r in resultados_data)
+                for r in resultados_data:
+                    r["melhor_opcao"] = r.get("valor_final", 0) == min_total
+            else:
+                resultados_data[0]["melhor_opcao"] = True
+
+            atualizarPaineisTema()
+            atualizarResultados()
+
+        except ValueError as ve:
+            notificacao(page, "Erro", str(ve), "erro")
+        except Exception as e:
+            notificacao(page, "Erro", f"Erro ao processar fornecedor: {str(e)}", "erro")
+        finally:
+            fornecedor["processando"] = False
+            atualizarPainelFornecedor()
     
-    def remover_fornecedor(fornecedor_id):
+    def removerFornecedor(fornecedor_id):
         nonlocal fornecedores_data, resultados_data
         
         if fornecedor_id == "1":
@@ -258,22 +215,20 @@ def ConsultaProdutosPage(page: ft.Page):
             resultados_data = [r for r in resultados_data if r["id"] != fornecedor_id]
             
             if len(resultados_data) > 0:
-                min_total = min(r["valor_total"] for r in resultados_data)
+                min_total = min(r["valor_final"] for r in resultados_data)
                 for r in resultados_data:
-                    r["melhor_opcao"] = r["valor_total"] == min_total
+                    r["melhor_opcao"] = r["valor_final"] == min_total
             
-            atualizar_paineis_tema()
-            atualizar_painel_fornecedores()
-            atualizar_resultados()
+            atualizar()
             
             if fornecedor_removido:
                 notificacao(page, "Fornecedor Removido", f"Fornecedor #{fornecedor_id} foi removido", "info")
 
-    def contar_fornecedores_validos():
+    def contarFornecedorValidos():
         return len([f for f in fornecedores_data if all([f["cnpj"], f["codigo_produto"], f["valor_produto"]])])
     
-    def atualizar_resultados():
-        th = theme.current_theme
+    def atualizarResultados():
+        th = theme.get_theme()
         painel_resultados.controls.clear()
         
         if not resultados_data:
@@ -300,14 +255,16 @@ def ConsultaProdutosPage(page: ft.Page):
                 )
             )
         else:
+            melhorOpcao(resultados_data)
+
             if len(resultados_data) > 1:
-                economia_maxima = max(r["valor_total"] for r in resultados_data) - min(r["valor_total"] for r in resultados_data)
+                economia_maxima = max(r["valor_final"] for r in resultados_data) - min(r["valor_final"] for r in resultados_data)
                 success_color = th.get("SUCCESS", "#10B981")
                 
                 economia_card = ft.Container(
                     content=ft.Row([
                         ft.Icon("emoji_events", color=success_color, size=20),
-                        ft.Text(f"Economia de até {format_currency(economia_maxima)}", 
+                        ft.Text(f"Economia de até {formatador(economia_maxima)}", 
                             color=success_color, weight="bold", size=16)
                     ], spacing=8),
                     bgcolor=f"{success_color}1A",
@@ -318,12 +275,12 @@ def ConsultaProdutosPage(page: ft.Page):
                 )
                 painel_resultados.controls.append(economia_card)
             
-            for resultado in sorted(resultados_data, key=lambda x: x["valor_total"]):
+            for resultado in sorted(resultados_data, key=lambda x: x["valor_final"]):
                 painel_resultados.controls.append(CardResultado(resultado))
         
         page.update()
     
-    def adicionar_fornecedor(e):
+    def adicionarFornecedor(e):
         if len(fornecedores_data) < 4:
             novo_id = str(len(fornecedores_data) + 1)
             fornecedores_data.append({
@@ -333,71 +290,25 @@ def ConsultaProdutosPage(page: ft.Page):
                 "valor_produto": "",
                 "processando": False
             })
-            atualizar_paineis_tema()
-            atualizar_painel_fornecedores()
+            atualizarPaineisTema()
+            atualizarPainelFornecedor()
             notificacao(page, "Fornecedor Adicionado", f"Fornecedor #{novo_id} adicionado com sucesso!", "info")
-    
-    def processar_todos(e):
-        nonlocal processamento_global
-        
-        fornecedores_validos = [
-            f for f in fornecedores_data 
-            if all([f["cnpj"], f["codigo_produto"], f["valor_produto"]])
-        ]
-        
-        if not fornecedores_validos:
-            notificacao(page, "Atenção", "Preencha pelo menos um fornecedor antes de processar!", "alerta")
-            return
-        
-        processamento_global = True
-        atualizar_botao_processar_todos()
-        
-        notificacao(page, "Processamento Iniciado", f"Processando {len(fornecedores_validos)} fornecedores...", "info")
-        
-        def processar_sequencial():
-            try:
-                for fornecedor in fornecedores_validos:
-                    if not fornecedor["processando"]:
-                        processar_fornecedor(fornecedor["id"])
-                        time.sleep(0.5)
-                
-                while any(f["processando"] for f in fornecedores_data):
-                    time.sleep(0.1)
-                
-                notificacao(page, "Concluído", "Todos os fornecedores foram processados!", "sucesso")
-                
-            finally:
-                nonlocal processamento_global
-                processamento_global = False
-                atualizar_botao_processar_todos()
-        
-        threading.Thread(target=processar_sequencial).start()
-    
-    def atualizar_botao_processar_todos():
-        th = theme.current_theme
-        fornecedores_validos = contar_fornecedores_validos()
-        
-        botao_processar_todos.disabled = processamento_global or fornecedores_validos < 2
-        botao_processar_todos.visible = fornecedores_validos > 1
-        botao_processar_todos.bgcolor = th.get("SUCCESS", "#10B981")
-        botao_processar_todos.content = ft.Row([
-            ft.ProgressRing(width=16, height=16, stroke_width=2, color="white") if processamento_global else ft.Icon(name="calculate", size=16, color="white"),
-            ft.Text(f"Processando..." if processamento_global else f"Processar Todos ({fornecedores_validos})", color="white")
-        ], spacing=8)
-        page.update()
-    
-    def atualizar_painel_fornecedores():
-        th = theme.current_theme
+   
+    def atualizarPainelFornecedor():
+        th = theme.get_theme()
         fornecedores_container.controls.clear()
+        validos = contarFornecedorValidos()
         
         for i, fornecedor in enumerate(fornecedores_data):
+            fornecedor_valido = all([fornecedor["cnpj"], fornecedor["codigo_produto"], fornecedor["valor_produto"]])
             card = CardFornecedor(
                 fornecedor=fornecedor,
                 index=i,
                 total=len(fornecedores_data),
-                on_update=atualizar_fornecedor,
-                on_processar=processar_fornecedor,
-                on_remover=remover_fornecedor
+                on_update=atualizarFornecedor,
+                on_processar=lambda fornecedor_id: asyncio.run(processarFornecedor(fornecedor_id)),
+                on_remover=removerFornecedor,
+                valido=fornecedor_valido
             )
             fornecedores_container.controls.append(card)
         
@@ -408,7 +319,7 @@ def ConsultaProdutosPage(page: ft.Page):
                     ft.Text(f"Adicionar Fornecedor ({len(fornecedores_data)}/4)", 
                         color=th["TEXT_SECONDARY"], weight="bold")
                 ], spacing=8, alignment=ft.MainAxisAlignment.CENTER),
-                on_click=adicionar_fornecedor,
+                on_click=adicionarFornecedor,
                 bgcolor="transparent",
                 width=float("inf"),
                 height=48,
@@ -420,7 +331,6 @@ def ConsultaProdutosPage(page: ft.Page):
             )
             fornecedores_container.controls.append(botao_adicionar)
         
-        atualizar_botao_processar_todos()
         page.update()
 
     titulo_secao = ft.Container(
@@ -434,23 +344,6 @@ def ConsultaProdutosPage(page: ft.Page):
     )
 
     fornecedores_container = ft.Column(spacing=24)
-    
-    botao_processar_todos = ft.ElevatedButton(
-        content=ft.Row([
-            ft.Icon(name="calculate", size=16, color="white"),
-            ft.Text("Processar Todos", color="white")
-        ], spacing=8),
-        on_click=processar_todos,
-        bgcolor=th.get("SUCCESS", "#10B981"),
-        disabled=True,
-        visible=False,
-        width=float("inf"),
-        height=48,
-        style=ft.ButtonStyle(
-            shape=ft.RoundedRectangleBorder(radius=8),
-            overlay_color={ft.ControlState.HOVERED: th.get("SUCCESS", "#10B981")}
-        )
-    )
     
     painel_fornecedores = ft.Card(
         elevation=8,
@@ -481,15 +374,9 @@ def ConsultaProdutosPage(page: ft.Page):
                 
                 ft.Container(
                     content=ft.Column([fornecedores_container], scroll=ft.ScrollMode.AUTO),
-                    height=520,
                 ),
-                ft.Container(
-                    content=botao_processar_todos,
-                    margin=ft.margin.only(top=16),
-                    height=48
-                )
-            ], spacing=16)
-        )
+            ], spacing=16, expand=True, scroll=ft.ScrollMode.AUTO,)
+        ),
     )
     
     painel_resultados = ft.Column(spacing=24)
@@ -518,32 +405,38 @@ def ConsultaProdutosPage(page: ft.Page):
                 ft.Container(height=16),
                 
                 ft.Container(
-                    content=ft.Column([painel_resultados], scroll=ft.ScrollMode.AUTO),
-                    height=620,
+                    content=ft.Column([painel_resultados], scroll=ft.ScrollMode.AUTO, expand=True),
+                    expand=True
                 )
-            ], spacing=16)
-        )
+            ], spacing=16, expand=True, scroll=ft.ScrollMode.AUTO,)
+        ),
     )
 
-    layout_principal = ft.Row([
-        ft.Container(
-            content=painel_fornecedores,
-            expand=True,
-            padding=ft.padding.only(right=16)
-        ),
-        ft.Container(
-            content=resultados_card,
-            expand=True,
-            padding=ft.padding.only(left=16)
-        )
-    ], spacing=0)
-    
-    atualizar_painel_fornecedores()
-    atualizar_resultados()
+    layout_principal = ft.Row(
+        controls=[
+            ft.Container(
+                content=painel_fornecedores,  
+                expand=True,
+                padding=ft.padding.only(right=8)
+            ),
+            ft.Container(
+                content=resultados_card,  
+                expand=True,
+                padding=ft.padding.only(left=8)
+            ),
+        ],
+        spacing=0,
+        alignment=ft.MainAxisAlignment.START,
+        vertical_alignment=ft.CrossAxisAlignment.START,
+        expand=True
+    )
+
+    atualizarPainelFornecedor()
+    atualizarResultados()
     
     return ft.View(
         route="/consulta_produtos",
-        bgcolor=th["BACKGROUNDSCREEN"],
+        bgcolor=th.get("BACKGROUNDSCREEN", "#FFFFFF"),
         controls=[
             ft.Column([
                 header_container,
@@ -551,11 +444,11 @@ def ConsultaProdutosPage(page: ft.Page):
                     content=ft.Column([
                         titulo_secao,
                         layout_principal
-                    ], spacing=0),
+                    ], spacing=0, expand=True),
                     padding=24,
                     expand=True
                 ),
-            ])
+            ], expand=True)
         ],
-        scroll=ft.ScrollMode.ADAPTIVE,
+        scroll=ft.ScrollMode.AUTO,
     )

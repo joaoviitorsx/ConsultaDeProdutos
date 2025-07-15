@@ -1,20 +1,32 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException
 from src.Services.consultaProdutosService import ConsultaProdutosService
+from src.Config.database.db import sqlalchemy_url
 
+db_url = sqlalchemy_url()
 router = APIRouter()
-service = ConsultaProdutosService("CAMINHO_PARA_SEU_BANCO.db")
+service = ConsultaProdutosService(db_url)
 
 @router.get("/produto")
 def get_produto(codigo_produto: str):
-    produto = service.consultar_produto(codigo_produto)
+    produto = service.consultarProdutos(codigo_produto)
     if not produto:
-        return {"erro": "Produto não encontrado"}
+        raise HTTPException(status_code=404, detail="Produto não encontrado")
     return produto
 
 @router.post("/calcular")
-def calcular_valor(codigo_produto: str, valor_produto: float, regime: str, decreto: bool = False):
-    produto = service.consultar_produto(codigo_produto)
+def calcular_valor(
+    codigo_produto: str,
+    valor_produto: float,
+    regime: str,
+    decreto: bool = False
+):
+    produto = service.consultarProdutos(codigo_produto)
     if not produto:
-        return {"erro": "Produto não encontrado"}
-    resultado = service.calcular_valor_final(valor_produto, produto["aliquota"], regime, decreto)
+        raise HTTPException(status_code=404, detail="Produto não encontrado")
+    resultado = service.calcularImposto(
+        valor_produto=valor_produto,
+        aliquota=produto["aliquota"],
+        regime=regime,
+        decreto=decreto
+    )
     return resultado
