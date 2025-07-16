@@ -1,14 +1,13 @@
 import flet as ft
 
+from src.Config import theme
+
 from src.Interface.User.login import LoginPage
 from src.Interface.User.dashboard import DashboardPage
 from src.Interface.User.consultaFornecedor import ConsultaFornecedorPage
 from src.Interface.User.consultaProdutos import ConsultaProdutosPage
 from src.Interface.User.consultaRelatorio import ConsultaRelatorioPage
-
 from src.Components.adminLayout import AdminLayout
-
-from src.Config import theme
 
 def main(page: ft.Page):
     theme.set_theme("light")

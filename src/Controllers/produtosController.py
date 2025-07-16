@@ -1,11 +1,11 @@
-from src.Services.produtosService import ProdutoService
-from src.Models.produtosModel import ProdutosModel
+from src.Services.produtoService import ProdutoService
+from src.Models.produtoModel import ProdutoModel
 from src.Config.database.db import sqlalchemy_url
 
 class ProdutoController:
     def __init__(self, db_url=None):
         self.db_url = db_url or sqlalchemy_url()
-        self.model = ProdutosModel(self.db_url)
+        self.model = ProdutoModel(self.db_url)
         self.service = ProdutoService(self.model)
 
     def listar(self):

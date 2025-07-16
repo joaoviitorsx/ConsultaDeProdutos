@@ -1,7 +1,7 @@
-from src.Models.produtosModel import ProdutosModel
+from src.Models.usuarioModel import UsuarioModel
 
-class ProdutoService:
-    def __init__(self, model: ProdutosModel):
+class UsuarioService:
+    def __init__(self, model: UsuarioModel):
         self.model = model
 
     def listar(self):
@@ -13,8 +13,8 @@ class ProdutoService:
         self.model.inserir(dados)
 
     def editar(self, id, dados):
-        produto_existente = self.model.buscarCodigo(dados["codigo"])
-        if produto_existente and produto_existente["id"] != id:
+        usuarioExistente = self.model.buscarCodigo(dados["codigo"])
+        if usuarioExistente and usuarioExistente["id"] != id:
             raise ValueError("Código já utilizado por outro produto.")
         self.model.atualizar(id, dados)
 

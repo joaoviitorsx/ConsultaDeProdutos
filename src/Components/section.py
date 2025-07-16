@@ -4,11 +4,9 @@ import datetime
 
 def welcomeSection(usuario_logado, page=None):
     th = theme.get_theme()
-    print("DEBUG chamada welcomeSection:", usuario_logado)
 
     if isinstance(usuario_logado, dict):
-        print("Bem-vindo(a) de volta, usuário logado:", usuario_logado)
-        nome = usuario_logado.get("razaoSocial", "usuário")
+        nome = usuario_logado.get("nome") or usuario_logado.get("razaoSocial") or "usuário"
     else:
         nome = usuario_logado or "usuário"
 

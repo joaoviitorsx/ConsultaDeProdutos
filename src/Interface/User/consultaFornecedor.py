@@ -241,7 +241,7 @@ def ConsultaFornecedorPage(page: ft.Page):
                             ft.Text(fornecedor_data["razao"], color=th["TEXT"], size=14)
                         ], spacing=4)),
                         ft.Container(col={"sm": 12}, content=ft.Column([
-                            ft.Text("CNAE Principal", color=th["TEXT_SECONDARY"], size=12, weight="bold"),
+                            ft.Text("CNAE", color=th["TEXT_SECONDARY"], size=12, weight="bold"),
                             ft.Row([
                                 ft.Icon(name="description", color=th["TEXT_SECONDARY"], size=16),
                                 ft.Text(fornecedor_data["cnae"], color=th["TEXT"], size=14)

@@ -28,13 +28,11 @@ def LoginPage(page: ft.Page):
                 if data and "data" in data and "id" in data["data"]:
                     page.usuario_id = str(data["data"]["id"])
                     page.usuario_logado = data["data"]["usuario"]
-                    print("DEBUG Login - usuário_id salvo:", page.usuario_id)
                     page.go("/dashboard")
                 else:
                     return
             except Exception as ex:
                 notificacao(page, "Erro inesperado", str(ex), "erro")
-                print("DEBUG Login - exceção:", ex)
             finally:
                 resetar_botao()
 

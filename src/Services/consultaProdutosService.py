@@ -64,7 +64,6 @@ class ConsultaProdutosService:
         - Se for do decreto, aplica regra específica (exemplo: multiplica alíquota por 1.2).
         - Else, usa apenas a alíquota do produto.
         """
-
         valor = float(valor_produto)
 
         if isinstance(aliquota, str) and aliquota.strip().upper() in ["ST", "ISENTO"]:
@@ -77,7 +76,7 @@ class ConsultaProdutosService:
                 "adicional_simples": 0.0
             }
 
-        aliquota = float(aliquota)
+        aliquota = float(str(aliquota).replace('%', '').replace(',', '.'))
         icms = 0.0
         adicional_simples = 0.0
 

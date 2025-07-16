@@ -8,21 +8,19 @@ router = APIRouter()
 async def consulta_fornecedor(cnpj: str):
     try:
         cnpjLimpo = removedorCaracteres(cnpj)
-        
         if not validarCnpj(cnpjLimpo):
             raise HTTPException(
                 status_code=400, 
                 detail="CNPJ inválido: deve conter 14 dígitos numéricos"
             )
-
-        fornecedor = await buscarFornecedorCnpj(cnpjLimpo)
         
+        fornecedor = await buscarFornecedorCnpj(cnpjLimpo)
+
         if not fornecedor:
             raise HTTPException(
                 status_code=404, 
                 detail="Fornecedor não encontrado na base de dados"
             )
-
         response_data = {
             "cnpj": fornecedor.get("cnpj"),
             "razao_social": fornecedor.get("razao_social"),
@@ -33,13 +31,11 @@ async def consulta_fornecedor(cnpj: str):
             "isento": fornecedor.get("decreto", False),
             "regime_tributario": "Simples Nacional" if fornecedor.get("simples", False) else "Lucro Real"
         }
-
         return {
             "success": True,
             "data": response_data,
             "message": "Fornecedor encontrado com sucesso"
         }
-        
     except HTTPException:
         raise
     except Exception as e:
