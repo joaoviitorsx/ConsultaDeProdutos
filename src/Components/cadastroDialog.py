@@ -46,6 +46,20 @@ def CadastroDialog(
                 filled=True,
                 expand=expand
             )
+        elif tipo == "password":
+            input_field = ft.TextField(
+                label=label,
+                hint_text=hint,
+                password=True,
+                can_reveal_password=True,
+                border_color=th["BORDER"],
+                bgcolor=th.get("INPUT_BG", th["CARD"]),
+                color=th["TEXT"],
+                border_radius=8,
+                dense=True,
+                expand=expand,
+                on_change=_validate if required else None
+            )
         else:
             input_field = ft.TextField(
                 label=label,
@@ -59,6 +73,7 @@ def CadastroDialog(
                 expand=expand,
                 on_change=_validate if required else None
             )
+
 
         inputs[nome] = input_field
         layout_campos.append(input_field)

@@ -36,20 +36,6 @@ async def buscarProdutoApi(codigo_produto):
         except Exception as e:
             raise ValueError(f"Erro ao buscar produto: {str(e)}")
 
-async def calcularImposto(codigo_produto, valor_produto, regime, decreto):
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            f"{BACKEND_URL}/calcular",
-            params={
-                "codigo_produto": codigo_produto,
-                "valor_produto": valor_produto,
-                "regime": regime,
-                "decreto": decreto
-            }
-        )
-        resp.raise_for_status()
-        return resp.json()
-    
 class ConsultaProdutosService:
     def __init__(self, db_url):
         self.produtoModel = ProdutoModel(db_url)
@@ -57,42 +43,55 @@ class ConsultaProdutosService:
     def consultarProdutos(self, codigoProduto):
         return self.produtoModel.buscarCodigo(codigoProduto)
 
-    def calcularImposto(self, valor_produto, aliquota, regime, decreto=False):
+    def calcularImposto(self, valor_produto, aliquota, regime, decreto=False, uf=None, categoria_fiscal=None):
         """
-        - Se fornecedor é Simples, soma 3% à alíquota do produto.
-        - Se aliquota for 'ST' ou 'ISENTO', não calcula imposto.
-        - Se for do decreto, aplica regra específica (exemplo: multiplica alíquota por 1.2).
-        - Else, usa apenas a alíquota do produto.
+        Regras fiscais:
+        - Se fornecedor é do CE e decreto se aplica, zera impostos.
+        - Se for do CE e não isento, usa alíquota do banco.
+        - Se for de fora do CE, busca alíquota da tabela decreto com base na UF e categoria fiscal.
+        - Se alíquota for ST ou ISENTO, não calcula imposto.
+        - Se fornecedor é Simples, soma 3% ao valor final.
         """
         valor = float(valor_produto)
 
-        if isinstance(aliquota, str) and aliquota.strip().upper() in ["ST", "ISENTO"]:
+        # Regra 1: Produto isento por decreto estadual (somente CE)
+        if uf == "CE" and decreto:
             return {
-                "aliquota_utilizada": aliquota,
-                "regra_aplicada": "Isento/ST",
+                "aliquota_utilizada": "0%",
+                "regra_aplicada": "Decreto 29.560/08 (isenção total)",
                 "valor_imposto": 0.0,
                 "valor_final": valor,
                 "icms": 0.0,
                 "adicional_simples": 0.0
             }
 
+        # Regra 2: Produto com ST ou ISENTO (independente da UF)
+        if isinstance(aliquota, str) and aliquota.strip().upper() in ["ST", "ISENTO"]:
+            return {
+                "aliquota_utilizada": aliquota,
+                "regra_aplicada": "Isento ou Substituição Tributária",
+                "valor_imposto": 0.0,
+                "valor_final": valor,
+                "icms": 0.0,
+                "adicional_simples": 0.0
+            }
+
+        # Regra 3: Fornecedor de fora do CE → buscar alíquota na tabela decreto
+        if uf != "CE" and categoria_fiscal:
+            aliquota = self.produtoModel.decreto(uf, categoria_fiscal)
+            if aliquota is None:
+                raise ValueError(f"Não foi encontrada alíquota para UF={uf} e categoria={categoria_fiscal}")
+
+        # Conversão e aplicação de alíquota
         aliquota = float(str(aliquota).replace('%', '').replace(',', '.'))
-        icms = 0.0
+        icms = valor * (aliquota / 100)
         adicional_simples = 0.0
+        regra = "Alíquota padrão"
+        aliquota_final = aliquota
 
         if regime.lower() == "simples nacional":
-            aliquota_final = aliquota + 3
-            regra = "Simples Nacional (+3%)"
-            icms = valor * (aliquota / 100)
             adicional_simples = valor * 0.03
-        elif decreto:
-            aliquota_final = aliquota * 1.2
-            regra = "Decreto (aliquota x 1.2)"
-            icms = valor * (aliquota_final / 100)
-        else:
-            aliquota_final = aliquota
-            regra = "Alíquota padrão"
-            icms = valor * (aliquota_final / 100)
+            regra = "Simples Nacional (3% adicional)"
 
         valor_imposto = icms + adicional_simples
         valor_final = valor + valor_imposto

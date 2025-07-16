@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, DECIMAL
+from sqlalchemy import create_engine, Column, Integer, String, DECIMAL, Table, MetaData, select
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from src.Config.database.db import sqlalchemy_url
@@ -115,3 +115,23 @@ class ProdutoModel:
             return False
         finally:
             session.close()
+
+    def decreto(self, uf: str, categoria_fiscal: str) -> float | None:
+        categoria_map = {
+            "regraGeral": "20regraGeral",
+            "cestaBasica7": "7cestaBasica",
+            "cestaBasica12": "12cestaBasica",
+            "bebidaAlcoolica": "bebidaAlcoolica"
+        }
+
+        nome_coluna = categoria_map.get(categoria_fiscal)
+        if not nome_coluna:
+            raise ValueError(f"Categoria fiscal '{categoria_fiscal}' inválida.")
+
+        metadata = MetaData()
+        decreto_table = Table("decreto", metadata, autoload_with=self.engine)
+
+        with self.engine.connect() as conn:
+            stmt = select(decreto_table.c[nome_coluna]).where(decreto_table.c.uf == uf)
+            result = conn.execute(stmt).fetchone()
+            return result[0] if result else None

@@ -17,10 +17,13 @@ async def buscarFornecedorCnpj(cnpj: str) -> dict | None:
             "simples": fornecedor["simples"],
             "decreto": fornecedor["decreto"]
         }
+
     print(f"[🔍] Fornecedor {cnpj} não encontrado no banco, buscando na API...")
     resultado = await buscarInformacoesApi(cnpj)
+
     if resultado and len(resultado) == 5:
-        razaoSocial, cnaeCodigo, isento, uf, simplesValor = resultado
+        razaoSocial, cnaeCodigo, uf, simplesValor, isento = resultado
+
         if razaoSocial and razaoSocial.strip():
             fornecedorApi = {
                 "cnpj": cnpj,
@@ -29,8 +32,9 @@ async def buscarFornecedorCnpj(cnpj: str) -> dict | None:
                 "uf": uf,
                 "simples": simplesValor,
                 "decreto": isento,
-                "empresa_id": 1 
+                "empresa_id": 1
             }
+
             fornecedorModel.inserir(fornecedorApi)
             print(f"[✔] Fornecedor {cnpj} salvo no banco após consulta API")
             return {
@@ -41,5 +45,6 @@ async def buscarFornecedorCnpj(cnpj: str) -> dict | None:
                 "simples": fornecedorApi["simples"],
                 "decreto": fornecedorApi["decreto"]
             }
+
     print(f"[Error] Fornecedor {cnpj} não encontrado")
     return None

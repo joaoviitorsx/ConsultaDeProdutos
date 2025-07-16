@@ -1,4 +1,3 @@
-import json
 import bcrypt
 import aiohttp
 from src.Config import theme

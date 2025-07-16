@@ -1,5 +1,5 @@
-from fastapi import APIRouter, HTTPException
-from src.Services.consultaProdutosService import ConsultaProdutosService
+from fastapi import APIRouter, HTTPException, Query
+from src.Services.consultaProdutosService import ConsultaProdutosService, buscarFornecedorApi
 from src.Config.database.db import sqlalchemy_url
 
 db_url = sqlalchemy_url()
@@ -14,19 +14,42 @@ def get_produto(codigo_produto: str):
     return produto
 
 @router.post("/calcular")
-def calcular_valor(
+async def calcular_valor(
     codigo_produto: str,
     valor_produto: float,
-    regime: str,
-    decreto: bool = False
+    cnpj_fornecedor: str = Query(..., description="CNPJ do fornecedor sem máscara")
 ):
     produto = service.consultarProdutos(codigo_produto)
     if not produto:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
+
+    try:
+        fornecedor = await buscarFornecedorApi(cnpj_fornecedor)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     resultado = service.calcularImposto(
         valor_produto=valor_produto,
         aliquota=produto["aliquota"],
-        regime=regime,
-        decreto=decreto
+        regime=fornecedor.get("regime", "Outro"),
+        decreto=fornecedor.get("isento", False),
+        uf=fornecedor.get("uf", ""),
+        categoria_fiscal=produto.get("categoriaFiscal", "")
     )
-    return resultado
+
+    return {
+        "produto": {
+            "codigo": produto["codigo"],
+            "descricao": produto["produto"],
+            "aliquota": produto["aliquota"],
+            "categoriaFiscal": produto.get("categoriaFiscal", "")
+        },
+        "fornecedor": {
+            "cnpj": fornecedor.get("cnpj"),
+            "uf": fornecedor.get("uf"),
+            "simples": fornecedor.get("simples"),
+            "isento": fornecedor.get("isento"),
+            "regime": fornecedor.get("regime")
+        },
+        "calculo": resultado
+    }

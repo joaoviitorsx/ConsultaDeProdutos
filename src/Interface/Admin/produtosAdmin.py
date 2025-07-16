@@ -40,7 +40,7 @@ def ProdutosAdminContent(page: ft.Page):
                 icon="edit",
                 tooltip="Editar",
                 icon_color=th["PRIMARY_COLOR"],
-                on_click=lambda e: abrir_dialog_edicao(prod)
+                on_click=lambda e: dialog(prod)
             ),
             ft.IconButton(
                 icon="delete",
@@ -50,13 +50,22 @@ def ProdutosAdminContent(page: ft.Page):
             ),
         ], spacing=4)
 
-    def abrir_dialog_edicao(prod: dict):
+    def dialog(prod: dict):
         CadastroDialog(
             page,
-            titulo="Editar Produto",
-            valores_iniciais=prod,
-            on_confirmar=lambda dados: salvar_produto(dados, id=prod["id"]),
+            titulo="Novo Produto",
+            campos=[
+                {"name": "produto", "label": "Nome", "hint": "Digite o nome do produto", "required": True},
+                {"name": "codigo", "label": "Código", "hint": "Ex: PROD-001"},
+                {"name": "ncm", "label": "NCM", "hint": "Ex: 1234.56.78"},
+                {"name": "aliquota", "label": "Alíquota (%)", "hint": "Digite a alíquota"},
+                {"name": "categoriaFiscal", "label": "Categoria Fiscal", "type": "dropdown", "options": [
+                    "28% Bebida Alcoólica", "20% Regra Geral", "12% Cesta Básica", "7% Cesta Básica"
+                ]}
+            ],
+            on_confirmar=salvar_produto
         )
+
 
     def excluir_produto(id: int):
         controller.excluir(id)

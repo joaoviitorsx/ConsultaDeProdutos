@@ -5,8 +5,9 @@ from src.Components.headerApp import HeaderApp
 from src.Components.notificacao import notificacao
 from src.Components.cardResultado import CardResultado, melhorOpcao
 from src.Components.cardFornecedor import CardFornecedor
-from src.Services.consultaProdutosService import buscarFornecedorApi, buscarProdutoApi, calcularImposto  
+from src.Services.consultaProdutosService import buscarFornecedorApi, buscarProdutoApi, ConsultaProdutosService  
 from src.Utils.validadores import formatador
+from src.Config.database.db import sqlalchemy_url
 
 def ConsultaProdutosPage(page: ft.Page):
     print("🔵 Tela Consulta Produtos carregada")
@@ -149,11 +150,18 @@ def ConsultaProdutosPage(page: ft.Page):
             decreto = fornecedor_api.get("isento", False)
             valor_produto = float(fornecedor["valor_produto"].replace(',', '.'))
 
-            resultado_api = await calcularImposto(
-                codigo_produto=fornecedor["codigo_produto"],
+            categoria_fiscal = produto_api.get("categoriaFiscal", "")
+            uf = fornecedor_api.get("uf", "")
+
+            service = ConsultaProdutosService(sqlalchemy_url())
+
+            resultado_api = service.calcularImposto(
                 valor_produto=valor_produto,
+                aliquota=produto_api.get("aliquota", ""),
                 regime=regime,
-                decreto=decreto
+                decreto=decreto,
+                uf=uf,
+                categoria_fiscal=categoria_fiscal
             )
 
             resultado = {
@@ -161,6 +169,7 @@ def ConsultaProdutosPage(page: ft.Page):
                 "cnpj": fornecedor["cnpj"],
                 "razao": fornecedor_api.get("razao_social"),
                 "fantasia": fornecedor_api.get("nome_fantasia"),
+                "cnae": fornecedor_api.get("cnae", ""),
                 "regime": regime,
                 "valor_produto": valor_produto,
                 "valor_final": resultado_api.get("valor_final", valor_produto),
@@ -393,8 +402,7 @@ def ConsultaProdutosPage(page: ft.Page):
                     ft.Icon(name="assessment", color=th.get("SUCCESS", "#10B981"), size=24),
                     ft.Text("Resultado da Análise", size=20, weight="bold", color=th["TEXT"]),
                     ft.Container(
-                        content=ft.Text(f"{len(resultados_data)} resultado{'s' if len(resultados_data) != 1 else ''}", 
-                                    color="white", size=12, weight="bold"),
+                        content=ft.Text(f"{len(resultados_data)} resultado{'s' if len(resultados_data) != 1 else ''}",color="white", size=12, weight="bold"), 
                         bgcolor=th.get("SUCCESS", "#10B981"),
                         padding=ft.padding.symmetric(horizontal=8, vertical=4),
                         border_radius=12,

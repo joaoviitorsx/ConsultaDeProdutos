@@ -55,6 +55,8 @@ def CardResultado(resultado: dict) -> ft.Card:
             ft.Row([
                 ft.Text(f"CNPJ: {resultado.get('cnpj', '')}", size=10, color=cores["neutro"], weight="w500"),
                 ft.Container(width=8),
+                ft.Text(f"CNAE: {resultado.get('cnae', '')}", size=10, color=cores["neutro"], weight="w500"),
+                ft.Container(width=8),
                 ft.Text(f"UF: {resultado.get('uf', '')}", size=10, color=cores["neutro"], weight="w500"),
             ], spacing=4),
             ft.Row([
