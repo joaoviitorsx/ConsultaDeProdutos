@@ -43,13 +43,12 @@ class ConsultaProdutosService:
     def consultarProdutos(self, codigoProduto):
         return self.produtoModel.buscarCodigo(codigoProduto)
 
-    def calcularImposto(self, valor_produto, aliquota, regime, decreto=False, uf=None, categoria_fiscal=None):
+    def calcularImposto(self, valor_produto, aliquota, regime, decreto=False, uf=None, categoriaFiscal=None):
         """
         Regras fiscais:
         - Se fornecedor é do CE e decreto se aplica, zera impostos.
-        - Se for do CE e não isento, usa alíquota do banco.
-        - Se for de fora do CE, busca alíquota da tabela decreto com base na UF e categoria fiscal.
         - Se alíquota for ST ou ISENTO, não calcula imposto.
+        - Em todos os casos, exceto isenções, validar a alíquota via tabela decreto (categoriaFiscal + UF).
         - Se fornecedor é Simples, soma 3% ao valor final.
         """
         valor = float(valor_produto)
@@ -69,38 +68,40 @@ class ConsultaProdutosService:
         if isinstance(aliquota, str) and aliquota.strip().upper() in ["ST", "ISENTO"]:
             return {
                 "aliquota_utilizada": aliquota,
-                "regra_aplicada": "Isento ou Substituição Tributária",
+                "regra_aplicada": "Isento ou ST",
                 "valor_imposto": 0.0,
                 "valor_final": valor,
                 "icms": 0.0,
                 "adicional_simples": 0.0
             }
 
-        # Regra 3: Fornecedor de fora do CE → buscar alíquota na tabela decreto
-        if uf != "CE" and categoria_fiscal:
-            aliquota = self.produtoModel.decreto(uf, categoria_fiscal)
-            if aliquota is None:
-                raise ValueError(f"Não foi encontrada alíquota para UF={uf} e categoria={categoria_fiscal}")
+        # Regra 3: Validação da alíquota com a tabela decreto (corrigir se necessário)
+        if categoriaFiscal and uf:
+            aliquotaDecreot = self.produtoModel.decreto(uf, categoriaFiscal)
+            if aliquotaDecreot is not None:
+                aliquota = aliquotaDecreot
+            else:
+                raise ValueError(f"Não foi encontrada alíquota para UF={uf} e categoria={categoriaFiscal}")
 
         # Conversão e aplicação de alíquota
         aliquota = float(str(aliquota).replace('%', '').replace(',', '.'))
         icms = valor * (aliquota / 100)
-        adicional_simples = 0.0
+        simplesNacional = 0.0
         regra = "Alíquota padrão"
-        aliquota_final = aliquota
+        aliquotaFinal = aliquota
 
         if regime.lower() == "simples nacional":
-            adicional_simples = valor * 0.03
+            simplesNacional = valor * 0.03
             regra = "Simples Nacional (3% adicional)"
 
-        valor_imposto = icms + adicional_simples
-        valor_final = valor + valor_imposto
+        valorImposto = icms + simplesNacional
+        valorFinal = valor + valorImposto
 
         return {
-            "aliquota_utilizada": aliquota_final,
+            "aliquota_utilizada": aliquotaFinal,
             "regra_aplicada": regra,
-            "valor_imposto": valor_imposto,
-            "valor_final": valor_final,
+            "valor_imposto": valorImposto,
+            "valor_final": valorFinal,
             "icms": icms,
-            "adicional_simples": adicional_simples,
+            "adicional_simples": simplesNacional,
         }

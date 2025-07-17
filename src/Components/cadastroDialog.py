@@ -44,7 +44,8 @@ def CadastroDialog(
                 border_color=th["BORDER"],
                 border_radius=8,
                 filled=True,
-                expand=expand
+                expand=expand,
+                on_change=_validate if required else None
             )
         elif tipo == "password":
             input_field = ft.TextField(
@@ -73,8 +74,7 @@ def CadastroDialog(
                 expand=expand,
                 on_change=_validate if required else None
             )
-
-
+            
         inputs[nome] = input_field
         layout_campos.append(input_field)
 
@@ -98,6 +98,8 @@ def CadastroDialog(
         text="Cancelar",
         on_click=cancelar
     )
+
+    _validate(None)
 
     header = ft.Row([
         ft.Icon(name="inventory_2", size=24, color=th["PRIMARY_COLOR"]),

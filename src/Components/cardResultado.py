@@ -115,8 +115,8 @@ def CardResultado(resultado: dict) -> ft.Card:
         impostos_produto_texto = "Sem Impostos"
         aliquota_label = f"Alíquota: {aliquota_banco}"
     else:
-        impostos_produto_texto = f"+{percentual_aliquota}% | R$ {formatador(resultado.get('valor_aliquota', 0))}"
-        aliquota_label = f"Alíquota: {aliquota_banco}%"
+        impostos_produto_texto = f"+{percentual_aliquota} | {formatador(resultado.get('valor_aliquota', 0))}"
+        aliquota_label = f"Alíquota aplicada: {percentual_aliquota}"
 
     regime = str(resultado.get("regime", "")).strip().lower()
     adicional_aplicado = resultado.get("adicional_aplicado", False)
@@ -161,7 +161,7 @@ def CardResultado(resultado: dict) -> ft.Card:
                 ], spacing=4),
                 ft.Text(adicional_status, size=11, color=adicional_status_color),
                 ft.Text(
-                    f"+{resultado.get('percentual_adicional', '0')}% | R$ {formatador(resultado.get('valor_adicional_simples', 0))}",
+                    f"+{resultado.get('percentual_adicional', '0')} | {formatador(resultado.get('valor_adicional_simples', 0))}",
                     size=12,
                     color=cores["sucesso"] if adicional_aplicado and "simples" in regime else cores["text_secondary"]
                 ),

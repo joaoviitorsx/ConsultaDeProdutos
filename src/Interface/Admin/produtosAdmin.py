@@ -15,7 +15,7 @@ def ProdutosAdminContent(page: ft.Page):
         page.update()
 
     def atualizarTabela():
-        tabela_container.content = build_table()
+        tabela_container.content = buildTable()
         page.update()
 
     def buscar_produtos():
@@ -46,7 +46,7 @@ def ProdutosAdminContent(page: ft.Page):
                 icon="delete",
                 tooltip="Excluir",
                 icon_color=th["ERROR"],
-                on_click=lambda e: excluir_produto(prod["id"])
+                on_click=lambda e: excluirProduto(prod["id"])
             ),
         ], spacing=4)
 
@@ -56,24 +56,24 @@ def ProdutosAdminContent(page: ft.Page):
             titulo="Novo Produto",
             campos=[
                 {"name": "produto", "label": "Nome", "hint": "Digite o nome do produto", "required": True},
-                {"name": "codigo", "label": "Código", "hint": "Ex: PROD-001"},
+                {"name": "codigo", "label": "Código", "hint": "Ex: 01"},
                 {"name": "ncm", "label": "NCM", "hint": "Ex: 1234.56.78"},
                 {"name": "aliquota", "label": "Alíquota (%)", "hint": "Digite a alíquota"},
-                {"name": "categoriaFiscal", "label": "Categoria Fiscal", "type": "dropdown", "options": [
-                    "28% Bebida Alcoólica", "20% Regra Geral", "12% Cesta Básica", "7% Cesta Básica"
-                ]}
+                {"name": "categoriaFiscal", "label": "Categoria Fiscal", "type": "dropdown", "options":
+                [
+                "28% Bebida Alcoólica", "20% Regra Geral", "12% Cesta Básica", "7% Cesta Básica"]}
             ],
-            on_confirmar=salvar_produto
+            valores_iniciais=prod,
+            on_confirmar=lambda dados: salvarProduto(dados, prod["id"])
         )
 
-
-    def excluir_produto(id: int):
+    def excluirProduto(id: int):
         controller.excluir(id)
         notificacao(page, "Excluido", "Produto excluído com sucesso!", "info")
         atualizarTabela()
         page.update()
 
-    def salvar_produto(dados: dict, id: int = None):
+    def salvarProduto(dados: dict, id: int = None):
         dados["empresa_id"] = 1
         try:
             if id:
@@ -87,7 +87,7 @@ def ProdutosAdminContent(page: ft.Page):
         atualizarTabela()
         page.update()
 
-    def build_table():
+    def buildTable():
         produtos = buscar_produtos()
         min_spacing = 40
         max_spacing = 75
@@ -130,11 +130,22 @@ def ProdutosAdminContent(page: ft.Page):
             )
         ])
 
-    def on_novo_produto_click(e: ft.ControlEvent):
+    def onNovoProduto(e: ft.ControlEvent):
         CadastroDialog(
             page,
             titulo="Novo Produto",
-            on_confirmar=lambda dados: salvar_produto(dados),
+            campos=[
+                {"name": "produto", "label": "Nome", "hint": "Digite o nome do produto", "required": True},
+                {"name": "codigo", "label": "Código", "hint": "Ex: PROD-001"},
+                {"name": "ncm", "label": "NCM", "hint": "Ex: 1234.56.78"},
+                {"name": "aliquota", "label": "Alíquota (%)", "hint": "Digite a alíquota"},
+                {"name": "categoriaFiscal", "label": "Categoria Fiscal", "type": "dropdown", "options":
+                    [
+                        "28% Bebida Alcoólica", "20% Regra Geral", "12% Cesta Básica", "7% Cesta Básica"
+                    ]
+                }
+            ],
+            on_confirmar=lambda dados: salvarProduto(dados),
         )
 
     search = ft.TextField(
@@ -165,7 +176,7 @@ def ProdutosAdminContent(page: ft.Page):
                     icon="add",
                     bgcolor=th["PRIMARY_COLOR"],
                     color=th["ON_PRIMARY"],
-                    on_click=on_novo_produto_click
+                    on_click=onNovoProduto
                 ),
                 alignment=ft.alignment.center_right,
                 col={"xs": 12, "sm": 4, "md": 3, "lg": 2}

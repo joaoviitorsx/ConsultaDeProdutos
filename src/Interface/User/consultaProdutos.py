@@ -161,7 +161,7 @@ def ConsultaProdutosPage(page: ft.Page):
                 regime=regime,
                 decreto=decreto,
                 uf=uf,
-                categoria_fiscal=categoria_fiscal
+                categoriaFiscal=categoria_fiscal
             )
 
             resultado = {
@@ -185,7 +185,9 @@ def ConsultaProdutosPage(page: ft.Page):
                 # Detalhes dos impostos:
                 "percentual_aliquota": str(produto_api.get("aliquota", "")),
                 "valor_aliquota": resultado_api.get("icms", 0),
-                "percentual_adicional": "3" if regime.lower() == "simples nacional" else "0",
+                "percentual_aliquota": f"{resultado_api.get('aliquota_utilizada', '')}%",
+                "valor_adicional_simples": resultado_api.get("adicional_simples", 0),
+                "percentual_adicional": "3%" if "simples" in regime.lower() and resultado_api.get("adicional_simples", 0) > 0 else "0",
                 "valor_adicional_simples": resultado_api.get("adicional_simples", 0),
             }
 

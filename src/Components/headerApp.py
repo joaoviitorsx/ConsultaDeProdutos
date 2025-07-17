@@ -75,7 +75,7 @@ def HeaderApp(
     if mostrar_usuario and is_admin:
         controles_direita.append(
             ft.IconButton(
-                icon="SETTINGS",
+                icon="SETTINGS_ROUNDED",
                 icon_color=th["TEXT_SECONDARY"],
                 tooltip="Acessar painel de administração",
                 on_click=lambda e: page.go("/admin_dashboard")
@@ -92,8 +92,8 @@ def HeaderApp(
     
     if mostrar_logout:
         controles_direita.append(
-            ft.Container(
-                content=ft.Icon(name="exit_to_app", size=24, color=th["TEXT"]),
+            ft.IconButton(
+                content=ft.Icon(name="LOGOUT_OUTLINED", size=24, color=th["TEXT"]),
                 on_click=logout,
                 tooltip="Sair",
             )

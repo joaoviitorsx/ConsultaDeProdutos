@@ -118,10 +118,10 @@ class ProdutoModel:
 
     def decreto(self, uf: str, categoria_fiscal: str) -> float | None:
         categoria_map = {
-            "regraGeral": "20regraGeral",
-            "cestaBasica7": "7cestaBasica",
-            "cestaBasica12": "12cestaBasica",
-            "bebidaAlcoolica": "bebidaAlcoolica"
+            "20RegraGeral": "20RegraGeral",
+            "7CestaBasica": "7CestaBasica",
+            "12CestaBasica": "12CestaBasica",
+            "28BebidaAlcoolica": "28BebidaAlcoolica"
         }
 
         nome_coluna = categoria_map.get(categoria_fiscal)

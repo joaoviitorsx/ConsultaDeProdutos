@@ -34,7 +34,7 @@ async def calcular_valor(
         regime=fornecedor.get("regime", "Outro"),
         decreto=fornecedor.get("isento", False),
         uf=fornecedor.get("uf", ""),
-        categoria_fiscal=produto.get("categoriaFiscal", "")
+        categoriaFiscal=produto.get("categoriaFiscal", "")
     )
 
     return {
