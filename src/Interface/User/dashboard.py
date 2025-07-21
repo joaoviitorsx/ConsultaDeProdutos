@@ -35,7 +35,7 @@ def DashboardPage(page: ft.Page):
         page.update()
 
     def updateDashboardContent():
-        usuarioLogado = page.client_storage.get("usuario_logado")
+        usuarioLogado = getattr(page, "usuario_info", {"nome": "usuário"})
         main_content.controls.clear()
         main_content.controls.extend([
             welcomeSection(usuarioLogado, page),

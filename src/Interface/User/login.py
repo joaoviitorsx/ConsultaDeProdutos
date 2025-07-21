@@ -28,7 +28,14 @@ def LoginPage(page: ft.Page):
                 if data and "data" in data and "id" in data["data"]:
                     page.usuario_id = str(data["data"]["id"])
                     page.usuario_logado = data["data"]["usuario"]
+                    page.razao_social = data["data"].get("nome")
                     page.selected_empresa_id = data["data"]["empresa_id"]
+                    # Salva o dicionário completo para usar no dashboard
+                    page.usuario_info = {
+                        "nome": data["data"].get("nome"),
+                        "usuario": data["data"]["usuario"],
+                        "empresa_id": data["data"]["empresa_id"]
+                    }
                     page.go("/dashboard")
                 else:
                     return
