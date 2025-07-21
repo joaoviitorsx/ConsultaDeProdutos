@@ -1,4 +1,7 @@
 import uvicorn
+import requests
+import threading
+import time
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.Controllers.consultaFornecedorController import router as fornecedor_router
@@ -45,10 +48,23 @@ async def root():
 async def health_check():
     return {"status": "healthy", "message": "API funcionando corretamente"}
 
+def verificar_status():
+    time.sleep(2)
+    try:
+        response = requests.get("http://localhost:8000/health", timeout=5)
+        if response.status_code == 200 and response.json().get("status") == "healthy":
+            print("✅ API ONLINE - Health check bem-sucedido.")
+        else:
+            print("⚠️ API RESPOSTA INESPERADA:", response.text)
+    except requests.exceptions.RequestException as e:
+        print("❌ API OFFLINE - Erro ao conectar:", str(e))
+
 if __name__ == "__main__":
     print("🚀 Iniciando API")
     print("📚 Documentação: http://localhost:8000/docs")
     print("🌐 Health Check: http://localhost:8000/health")
     print("🔐 Login: http://localhost:8000/api/auth/login")
     print("👤 Me: http://localhost:8000/api/auth/me")  
+    
+    threading.Thread(target=verificar_status, daemon=True).start()
     uvicorn.run(app, host="0.0.0.0", port=8000)

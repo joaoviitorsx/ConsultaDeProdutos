@@ -16,8 +16,8 @@ router = APIRouter()
 security = HTTPBearer()
 
 SECRET_KEY = os.getenv("JWT_KEY", "jwt_token")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 8 
+ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60 * 8))
 
 async def realizarLogin(page, usuario, senha):
         status, data = await autenticar(usuario, senha)

@@ -1,9 +1,12 @@
+import os
 import bcrypt
 import aiohttp
 from src.Config import theme
 from src.Config.database.db import conectarBanco, fecharBanco
+from dotenv import load_dotenv
 
-API_URL = "http://localhost:8000/api/auth/login"
+load_dotenv()
+API_URL = os.getenv("API_URL")
 
 async def autenticar(usuario: str, senha: str) -> tuple[int | None, dict]:
     timeout = aiohttp.ClientTimeout(total=30)

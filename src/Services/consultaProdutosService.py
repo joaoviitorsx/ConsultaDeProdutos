@@ -1,8 +1,12 @@
+import os
 import httpx
 from src.Models.produtoModel import ProdutoModel
 from src.Models.consultaModel import ConsultaModel
+from dotenv import load_dotenv
 
-BACKEND_URL = "http://localhost:8000/api"
+load_dotenv()
+
+BACKEND_URL = os.getenv("BACKEND_URL")
 
 async def buscarFornecedorApi(cnpj):
     cnpjLimpo = cnpj.replace(".", "").replace("/", "").replace("-", "")
