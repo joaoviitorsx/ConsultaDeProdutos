@@ -7,9 +7,9 @@ router = APIRouter()
 service = ConsultaProdutosService(db_url)
 
 @router.get("/produto")
-def get_produto(codigo_produto: str):
-    produto = service.consultarProdutos(codigo_produto)
-    if not produto:
+def get_produto(codigo_produto: str, empresa_id: int):
+    produto = service.consultarProdutos(codigo_produto, empresa_id)
+    if not produto or not produto.get("id"):
         raise HTTPException(status_code=404, detail="Produto não encontrado")
     return produto
 
@@ -17,9 +17,10 @@ def get_produto(codigo_produto: str):
 async def calcular_valor(
     codigo_produto: str,
     valor_produto: float,
+    empresa_id: int = Query(..., description="ID da empresa do usuário logado"),
     cnpj_fornecedor: str = Query(..., description="CNPJ do fornecedor sem máscara")
 ):
-    produto = service.consultarProdutos(codigo_produto)
+    produto = service.consultarProdutos(codigo_produto, empresa_id)
     if not produto:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
 
@@ -53,3 +54,4 @@ async def calcular_valor(
         },
         "calculo": resultado
     }
+

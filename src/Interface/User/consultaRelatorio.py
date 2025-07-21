@@ -5,6 +5,7 @@ from src.Components.headerApp import HeaderApp
 from src.Components.notificacao import notificacao
 import threading
 import time
+import httpx
 
 def ConsultaRelatorioPage(page: ft.Page):
     print("🟡 Tela Consulta Relatórios carregada")
@@ -71,80 +72,70 @@ def ConsultaRelatorioPage(page: ft.Page):
     def format_currency(valor):
         return f"R$ {valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
 
-    def gerar_dados_mock(mes, ano):
-        dados = []
-        for i in range(15):
-            data_base = datetime(int(ano), int(mes[:2]), 1)
-            data_consulta = data_base + timedelta(days=i)
-            
-            fornecedores = [
-                {"nome": "Tech Solutions LTDA", "cnpj": "11.222.333/0001-81"},
-                {"nome": "Comercial ABC S/A", "cnpj": "44.555.666/0001-82"},
-                {"nome": "Industria XYZ LTDA", "cnpj": "77.888.999/0001-83"},
-                {"nome": "Distribuidora DEF ME", "cnpj": "12.345.678/0001-90"}
-            ]
-            
-            fornecedor = fornecedores[i % len(fornecedores)]
-            valor_base = 100 + (i * 50)
-            aliquota = 12 if i % 2 == 0 else 18
-            adicional = 0 if i % 2 == 0 else 3
-            total_impostos = (valor_base * aliquota / 100) + (valor_base * adicional / 100)
-            valor_final = valor_base + total_impostos
-            
-            dados.append({
-                "data": data_consulta.strftime("%d/%m/%Y"),
-                "fornecedor": fornecedor["nome"],
-                "cnpj": fornecedor["cnpj"],
-                "produto": f"Produto {chr(65 + (i % 10))}",
-                "codigo": f"{12345 + i}",
-                "valor_base": valor_base,
-                "aliquota": f"{aliquota}%",
-                "adicional": f"{adicional}%" if adicional > 0 else "Isento",
-                "total_impostos": total_impostos,
-                "valor_final": valor_final,
-                "regime": "Simples Nacional" if i % 2 == 0 else "Lucro Real"
-            })
-        
-        return dados
-
     def consultar_relatorio(e):
         if not combo_mes.value or not combo_ano.value:
             notificacao(page, "Atenção", "Selecione o mês e ano para consulta", "alerta")
             return
-        
+
         nonlocal carregando, dados_relatorio, periodo_selecionado
         carregando = True
         periodo_selecionado = {"mes": combo_mes.value, "ano": combo_ano.value}
-        
-        # Atualizar interface
+
         botao_consultar.disabled = True
         botao_consultar.content = ft.Row([
             ft.ProgressRing(width=16, height=16, stroke_width=2, color="white"),
             ft.Text("Consultando...", color="white")
         ], spacing=8)
-        
+
         atualizar_area_resultados(carregando=True)
         page.update()
-        
-        def processar_consulta():
-            time.sleep(2)
-            
-            nonlocal dados_relatorio, carregando
-            dados_relatorio = gerar_dados_mock(combo_mes.value, combo_ano.value)
-            carregando = False
-            
-            botao_consultar.disabled = False
-            botao_consultar.content = ft.Row([
-                ft.Icon(name="search", size=16, color="white"),
-                ft.Text("Consultar", color="white")
-            ], spacing=8)
-            
-            atualizar_area_resultados()
-            
-            notificacao(page, "Sucesso", f"Encontrados {len(dados_relatorio)} registros", "sucesso")
-            page.update()
-        
-        threading.Thread(target=processar_consulta).start()
+
+        async def processar_consulta():
+            try:
+                empresa_id = getattr(page, "selected_empresa_id", 1)
+                mes_num = int(combo_mes.value[:2])
+                ano_num = int(combo_ano.value)
+                url = "http://localhost:8000/api/consultas-relatorio"
+                async with httpx.AsyncClient() as client:
+                    resp = await client.get(url, params={
+                        "empresa_id": empresa_id,
+                        "mes": mes_num,
+                        "ano": ano_num
+                    })
+                    resp.raise_for_status()
+                    dados = resp.json()
+                nonlocal dados_relatorio, carregando
+                dados_relatorio = [
+                    {
+                        "data": c["dataConsulta"][:10][::-1].replace("-", "/") if c.get("dataConsulta") else "",
+                        "fornecedor": c.get("nomeFornecedor", ""),
+                        "cnpj": c.get("cnpjFornecedor", ""),
+                        "produto": c.get("produto", ""),
+                        "codigo": c.get("codigoProduto", ""),
+                        "valor_base": c.get("valorBase", 0.0),
+                        "aliquota": c.get("aliquotaAplicada", ""),
+                        "adicional": f"{c.get('adicionalSimples', 0)}%" if c.get("adicionalSimples") else "Isento",
+                        "total_impostos": (c.get("valorFinal", 0.0) - c.get("valorBase", 0.0)),
+                        "valor_final": c.get("valorFinal", 0.0),
+                        "regime": c.get("regime") or "Não informado"
+                    }
+                    for c in dados
+                ]
+                carregando = False
+                notificacao(page, "Sucesso", f"Encontrados {len(dados_relatorio)} registros", "sucesso")
+            except Exception as ex:
+                notificacao(page, "Erro", f"Erro ao buscar dados: {ex}", "erro")
+                dados_relatorio = []
+            finally:
+                botao_consultar.disabled = False
+                botao_consultar.content = ft.Row([
+                    ft.Icon(name="search", size=16, color="white"),
+                    ft.Text("Consultar", color="white")
+                ], spacing=8)
+                atualizar_area_resultados()
+                page.update()
+
+        page.run_task(processar_consulta)
 
     def gerar_pdf(e):
         if not dados_relatorio:
@@ -175,28 +166,28 @@ def ConsultaRelatorioPage(page: ft.Page):
     def atualizar_tabela():
         if not dados_relatorio:
             return
-        
+
         colunas = [
-            ft.DataColumn(ft.Text("Data", color=th["TEXT"], weight="bold")),
-            ft.DataColumn(ft.Text("Fornecedor", color=th["TEXT"], weight="bold")),
-            ft.DataColumn(ft.Text("CNPJ", color=th["TEXT"], weight="bold")),
-            ft.DataColumn(ft.Text("Produto", color=th["TEXT"], weight="bold")),
-            ft.DataColumn(ft.Text("Código", color=th["TEXT"], weight="bold")),
-            ft.DataColumn(ft.Text("Valor Base", color=th["TEXT"], weight="bold")),
-            ft.DataColumn(ft.Text("Regime", color=th["TEXT"], weight="bold")),
-            ft.DataColumn(ft.Text("Total", color=th["TEXT"], weight="bold"))
+            ft.DataColumn(ft.Text("Data", color="white", weight="bold")),
+            ft.DataColumn(ft.Text("Fornecedor", color="white", weight="bold")),
+            ft.DataColumn(ft.Text("CNPJ", color="white", weight="bold")),
+            ft.DataColumn(ft.Text("Produto", color="white", weight="bold")),
+            ft.DataColumn(ft.Text("Código", color="white", weight="bold")),
+            ft.DataColumn(ft.Text("Valor Base", color="white", weight="bold")),
+            ft.DataColumn(ft.Text("Regime", color="white", weight="bold")),
+            ft.DataColumn(ft.Text("Total", color="white", weight="bold"))
         ]
-        
+
         linhas = []
-        for item in dados_relatorio:
+        for idx, item in enumerate(dados_relatorio):
             cor_regime = th.get("SUCCESS", "#10B981") if "Simples" in item["regime"] else th.get("INFO", "#3B82F6")
-            
+            cor_linha = f"{th['CARD']}E" if idx % 2 == 0 else f"{th['BACKGROUNDSCREEN']}"
+
             linhas.append(
                 ft.DataRow(
                     cells=[
                         ft.DataCell(ft.Text(item["data"], color=th["TEXT"], size=12)),
-                        ft.DataCell(ft.Text(item["fornecedor"][:20] + "..." if len(item["fornecedor"]) > 20 else item["fornecedor"], 
-                                          color=th["TEXT"], size=12)),
+                        ft.DataCell(ft.Text(item["fornecedor"][:20] + "..." if len(item["fornecedor"]) > 20 else item["fornecedor"], color=th["TEXT"], size=12)),
                         ft.DataCell(ft.Text(item["cnpj"], color=th["TEXT"], size=12, font_family="monospace")),
                         ft.DataCell(ft.Text(item["produto"], color=th["TEXT"], size=12)),
                         ft.DataCell(ft.Text(item["codigo"], color=th["TEXT"], size=12, font_family="monospace")),
@@ -208,28 +199,46 @@ def ConsultaRelatorioPage(page: ft.Page):
                             border_radius=12
                         )),
                         ft.DataCell(ft.Text(format_currency(item["valor_final"]), color=th["TEXT"], size=12, weight="bold"))
-                    ]
+                    ],
+                    color=cor_linha
                 )
             )
-        
+
         nova_tabela = ft.DataTable(
             columns=colunas,
             rows=linhas,
-            heading_row_color=f"{th['PRIMARY_COLOR']}20",
-            data_row_color={"": "transparent", ft.ControlState.HOVERED: f"{th['TEXT_SECONDARY']}10"},
+            heading_row_color=th["PRIMARY_COLOR"],
+            heading_row_height=48,
+            data_row_color={"even": f"{th['CARD']}E", "odd": th["BACKGROUNDSCREEN"]},
             divider_thickness=1,
             data_row_min_height=50,
             data_row_max_height=50,
-            column_spacing=20,
-            border=ft.border.all(1, f"{th['TEXT_SECONDARY']}30"),
-            border_radius=8
+            column_spacing=16,
+            border=ft.border.all(1, th["PRIMARY_COLOR"]),
+            border_radius=12,
+            horizontal_margin=0,
         )
-        
+
         tabela_container.content = ft.Container(
-            content=nova_tabela,
-            padding=16,
-            bgcolor=th["BACKGROUNDSCREEN"],
-            border_radius=8
+            content=ft.Row(
+                controls=[
+                    ft.Container(
+                        content=nova_tabela,
+                        padding=8,
+                        bgcolor=th["CARD"],
+                        border_radius=12,
+                        shadow=ft.BoxShadow(blur_radius=16, color="#00000022", offset=ft.Offset(0, 4)),
+                        alignment=ft.alignment.center,
+                        expand=True,
+                        height=350,
+                        width=1100
+                    ),
+                ],
+                alignment=ft.MainAxisAlignment.CENTER
+            ),
+            expand=True,
+            padding=0,
+            bgcolor="transparent",
         )
 
     def atualizar_area_resultados(carregando=False):
@@ -268,67 +277,70 @@ def ConsultaRelatorioPage(page: ft.Page):
             valor_total = sum(item["valor_final"] for item in dados_relatorio)
             total_impostos = sum(item["total_impostos"] for item in dados_relatorio)
             
-            stats_row = ft.Row([
+            stats_row = ft.ResponsiveRow([
                 ft.Container(
                     content=ft.Column([
-                        ft.Text(str(total_consultas), size=24, weight="bold", color=th["PRIMARY_COLOR"]),
+                        ft.Text(str(total_consultas), size=28, weight="bold", color=th["PRIMARY_COLOR"]),
                         ft.Text("Consultas", size=14, color=th["TEXT_SECONDARY"])
                     ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4),
                     bgcolor=f"{th['PRIMARY_COLOR']}10",
-                    padding=16,
-                    border_radius=8,
+                    padding=20,
+                    border_radius=16,
                     border=ft.border.all(1, f"{th['PRIMARY_COLOR']}30"),
-                    expand=True
+                    col={"sm": 12, "md": 4}
                 ),
                 ft.Container(
                     content=ft.Column([
-                        ft.Text(format_currency(valor_total), size=20, weight="bold", color=th.get("SUCCESS", "#10B981")),
+                        ft.Text(format_currency(valor_total), size=24, weight="bold", color=th.get("SUCCESS", "#10B981")),
                         ft.Text("Valor Total", size=14, color=th["TEXT_SECONDARY"])
                     ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4),
                     bgcolor=f"{th.get('SUCCESS', '#10B981')}10",
-                    padding=16,
-                    border_radius=8,
+                    padding=20,
+                    border_radius=16,
                     border=ft.border.all(1, f"{th.get('SUCCESS', '#10B981')}30"),
-                    expand=True
+                    col={"sm": 12, "md": 4}
                 ),
                 ft.Container(
                     content=ft.Column([
-                        ft.Text(format_currency(total_impostos), size=20, weight="bold", color=th.get("WARNING", "#F59E0B")),
+                        ft.Text(format_currency(total_impostos), size=24, weight="bold", color=th.get("WARNING", "#F59E0B")),
                         ft.Text("Total Impostos", size=14, color=th["TEXT_SECONDARY"])
                     ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4),
                     bgcolor=f"{th.get('WARNING', '#F59E0B')}10",
-                    padding=16,
-                    border_radius=8,
+                    padding=20,
+                    border_radius=16,
                     border=ft.border.all(1, f"{th.get('WARNING', '#F59E0B')}30"),
-                    expand=True
+                    col={"sm": 12, "md": 4}
                 )
-            ], spacing=16)
-            
+            ], spacing=16, run_spacing=16)
+
             resultados_card.content.content = ft.Column([
                 ft.Row([
                     ft.Icon(name="assessment", color=th.get("SUCCESS", "#10B981"), size=24),
                     ft.Text("Resultados da Consulta", size=20, weight="bold", color=th["TEXT"]),
                     ft.Container(
-                        content=ft.Text(f"{periodo_selecionado['mes']} de {periodo_selecionado['ano']}", 
-                                      color="white", size=12, weight="bold"),
+                        content=ft.Text(f"{periodo_selecionado['mes']} de {periodo_selecionado['ano']}", color="white", size=12, weight="bold"),     
                         bgcolor=th["PRIMARY_COLOR"],
                         padding=ft.padding.symmetric(horizontal=12, vertical=6),
                         border_radius=12
                     )
                 ], spacing=12),
-                
+
                 ft.Container(height=16),
-                
+
                 stats_row,
-                
+
                 ft.Container(height=16),
-                
+
                 ft.Container(
-                    content=tabela_container,
-                    height=400,
+                    content=ft.Row(
+                        controls=[tabela_container],
+                        scroll=ft.ScrollMode.AUTO,
+                        expand=True
+                    ),
+                    expand=True,
                     padding=0
                 )
-            ], spacing=16)
+            ], spacing=16, expand=True)
             
             atualizar_tabela()
 
@@ -443,12 +455,12 @@ def ConsultaRelatorioPage(page: ft.Page):
     tabela_container = ft.Container()
 
     resultados_card = ft.Card(
-        elevation=4,
+        elevation=8,
         content=ft.Container(
             bgcolor=th["CARD"],
             padding=24,
             border_radius=12,
-            height=600,
+            expand=True,
             content=ft.Container(
                 content=ft.Column([
                     ft.Container(

@@ -4,11 +4,11 @@ class ProdutoService:
     def __init__(self, model: ProdutoModel):
         self.model = model
 
-    def listar(self):
-        return self.model.listarTodos()
+    def listar(self, empresa_id):
+        return self.model.listarTodos(empresa_id)
 
     def adicionar(self, dados):
-        if self.model.buscarCodigo(dados["codigo"]):
+        if self.model.buscarCodigo(dados["codigo"], dados["empresa_id"]):
             raise ValueError("Já existe um produto com este código.")
         self.model.inserir(dados)
 

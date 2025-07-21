@@ -4,10 +4,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.Controllers.consultaFornecedorController import router as fornecedor_router
 from src.Controllers.consultaProdutosController import router as produtos_router
 from src.Controllers.loginController import router as login_router
+from src.Controllers.consultaRelatorioController import router as relatorio_router
 
 app = FastAPI(
     title="API Sistema de Consultas",
-    description="API para consulta de fornecedores e sistema de login",
+    description="API para o software de consulta de produtos",
     version="1.0.0"
 )
 
@@ -22,6 +23,7 @@ app.add_middleware(
 app.include_router(login_router, prefix="/api/auth", tags=["autenticação"])
 app.include_router(fornecedor_router, prefix="/api", tags=["fornecedores"])
 app.include_router(produtos_router, prefix="/api", tags=["produtos"])
+app.include_router(relatorio_router, prefix="/api", tags=["relatorios"])
 
 @app.get("/")
 async def root():

@@ -1,17 +1,21 @@
 import asyncio
 import flet as ft
 from src.Config import theme
-from src.Components.headerApp import HeaderApp
-from src.Components.notificacao import notificacao
-from src.Components.cardResultado import CardResultado, melhorOpcao
-from src.Components.cardFornecedor import CardFornecedor
-from src.Services.consultaProdutosService import buscarFornecedorApi, buscarProdutoApi, ConsultaProdutosService  
 from src.Utils.validadores import formatador
+from src.Components.headerApp import HeaderApp
 from src.Config.database.db import sqlalchemy_url
+from src.Components.notificacao import notificacao
+from src.Components.cardFornecedor import CardFornecedor
+from src.Components.cardResultado import CardResultado, melhorOpcao
+from src.Services.consultaProdutosService import buscarFornecedorApi, buscarProdutoApi, ConsultaProdutosService  
 
 def ConsultaProdutosPage(page: ft.Page):
     print("🔵 Tela Consulta Produtos carregada")
 
+    if not hasattr(page, "selected_empresa_id") or page.selected_empresa_id is None:
+        notificacao(page, "Erro", "Empresa não identificada. Faça login novamente.", "erro")
+        return
+    
     theme.apply_theme(page)
     th = theme.get_theme()
 
@@ -145,11 +149,16 @@ def ConsultaProdutosPage(page: ft.Page):
 
         try:
             fornecedor_api = await buscarFornecedorApi(fornecedor["cnpj"])
-            produto_api = await buscarProdutoApi(fornecedor["codigo_produto"])
+            produto_api = await buscarProdutoApi(fornecedor["codigo_produto"], page.selected_empresa_id)
+            if not produto_api:
+                notificacao(page, "Erro", "Produto não encontrado para esta empresa.", "erro")
+                fornecedor["processando"] = False
+                atualizarPainelFornecedor()
+                return
+
             regime = fornecedor_api.get("regime_tributario", "Lucro Real")
             decreto = fornecedor_api.get("isento", False)
             valor_produto = float(fornecedor["valor_produto"].replace(',', '.'))
-
             categoria_fiscal = produto_api.get("categoriaFiscal", "")
             uf = fornecedor_api.get("uf", "")
 
@@ -163,6 +172,31 @@ def ConsultaProdutosPage(page: ft.Page):
                 uf=uf,
                 categoriaFiscal=categoria_fiscal
             )
+
+            try:
+                usuario_id = page.session.get("usuario_id")
+                if not usuario_id:
+                    usuario_id = 0
+                
+                dados_consulta = {
+                    "usuario_id": usuario_id,
+                    "empresa_id": page.selected_empresa_id,
+                    "cnpjFornecedor": fornecedor["cnpj"],
+                    "nomeFornecedor": fornecedor_api.get("razao_social", ""),
+                    "codigoProduto": fornecedor["codigo_produto"],
+                    "produto": produto_api.get("produto", ""),
+                    "valorBase": valor_produto,
+                    "uf": uf,
+                    "regime": regime,
+                    "aliquotaAplicada": str(resultado_api.get("aliquota_utilizada", "")),
+                    "adicionalSimples": resultado_api.get("adicional_simples", 0),
+                    "valorFinal": resultado_api.get("valor_final", valor_produto),
+                }
+
+                service.salvarConsultaUsuario(dados_consulta)
+
+            except Exception as e:
+                print(f"❌ Erro ao salvar consulta: {e}")
 
             resultado = {
                 "id": fornecedor["id"],

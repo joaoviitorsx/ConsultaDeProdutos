@@ -28,6 +28,7 @@ def LoginPage(page: ft.Page):
                 if data and "data" in data and "id" in data["data"]:
                     page.usuario_id = str(data["data"]["id"])
                     page.usuario_logado = data["data"]["usuario"]
+                    page.selected_empresa_id = data["data"]["empresa_id"]
                     page.go("/dashboard")
                 else:
                     return

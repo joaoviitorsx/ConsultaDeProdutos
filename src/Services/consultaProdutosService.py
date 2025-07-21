@@ -1,5 +1,6 @@
 import httpx
 from src.Models.produtoModel import ProdutoModel
+from src.Models.consultaModel import ConsultaModel
 
 BACKEND_URL = "http://localhost:8000/api"
 
@@ -20,10 +21,13 @@ async def buscarFornecedorApi(cnpj):
         except Exception as e:
             raise ValueError(f"Erro ao buscar fornecedor: {str(e)}")
 
-async def buscarProdutoApi(codigo_produto):
+async def buscarProdutoApi(codigo_produto: str, empresa_id: int) -> dict:
     async with httpx.AsyncClient() as client:
         try:
-            resp = await client.get(f"{BACKEND_URL}/produto", params={"codigo_produto": codigo_produto})
+            resp = await client.get(
+                f"{BACKEND_URL}/produto",
+                params={"codigo_produto": codigo_produto, "empresa_id": empresa_id}
+            )
             resp.raise_for_status()
             data = resp.json()
             if not data:
@@ -39,9 +43,13 @@ async def buscarProdutoApi(codigo_produto):
 class ConsultaProdutosService:
     def __init__(self, db_url):
         self.produtoModel = ProdutoModel(db_url)
+        self.consultaModel = ConsultaModel(db_url)
 
-    def consultarProdutos(self, codigoProduto):
-        return self.produtoModel.buscarCodigo(codigoProduto)
+    def consultarProdutos(self, codigo_produto: str, empresa_id: int) -> dict:
+        return self.produtoModel.buscarCodigo(codigo_produto, empresa_id)
+    
+    def salvarConsultaUsuario(self, dados: dict):
+        self.consultaModel.salvarConsulta(dados)
 
     def calcularImposto(self, valor_produto, aliquota, regime, decreto=False, uf=None, categoriaFiscal=None):
         """
@@ -75,11 +83,11 @@ class ConsultaProdutosService:
                 "adicional_simples": 0.0
             }
 
-        # Regra 3: Validação da alíquota com a tabela decreto (corrigir se necessário)
-        if categoriaFiscal and uf:
-            aliquotaDecreot = self.produtoModel.decreto(uf, categoriaFiscal)
-            if aliquotaDecreot is not None:
-                aliquota = aliquotaDecreot
+        # Regra 3: Validação da alíquota com a tabela decreto, apenas para fora do CE
+        if categoriaFiscal and uf and uf != "CE":
+            aliquotaDecreto = self.produtoModel.decreto(uf, categoriaFiscal)
+            if aliquotaDecreto is not None:
+                aliquota = aliquotaDecreto
             else:
                 raise ValueError(f"Não foi encontrada alíquota para UF={uf} e categoria={categoriaFiscal}")
 

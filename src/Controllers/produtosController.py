@@ -8,8 +8,8 @@ class ProdutoController:
         self.model = ProdutoModel(self.db_url)
         self.service = ProdutoService(self.model)
 
-    def listar(self):
-        return self.service.listar()
+    def listar(self, empresa_id):
+        return self.service.listar(empresa_id)
 
     def adicionar(self, dados):
         try:

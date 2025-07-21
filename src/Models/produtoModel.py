@@ -23,10 +23,13 @@ class ProdutoModel:
         self.Session = sessionmaker(bind=self.engine)
         Base.metadata.create_all(self.engine)
 
-    def listarTodos(self):
+    def listarTodos(self, empresa_id):
         session = self.Session()
         try:
-            produtos = session.query(Produto).all()
+            query = session.query(Produto)
+            if empresa_id is not None:
+                query = query.filter_by(empresa_id=empresa_id)
+            produtos = query.all()
             def parse_aliquota(val):
                 try:
                     return float(val)
@@ -47,25 +50,23 @@ class ProdutoModel:
         finally:
             session.close()
 
-    def buscarCodigo(self, codigoProduto):
+    def buscarCodigo(self, codigoProduto, empresa_id):
         session = self.Session()
         try:
-            produto = session.query(Produto).filter_by(codigo=codigoProduto).first()
+            produto = session.query(Produto).filter_by(codigo=codigoProduto, empresa_id=empresa_id).first()
             if produto:
-                try:
-                    aliquotaValida = float(produto.aliquota)
-                except (ValueError, TypeError):
-                    aliquotaValida = produto.aliquota
-                return {
+                result = {
                     "id": produto.id,
                     "empresa_id": produto.empresa_id,
                     "codigo": produto.codigo,
                     "produto": produto.produto,
                     "ncm": produto.ncm,
-                    "aliquota": aliquotaValida,
-                    "categoriaFiscal": produto.categoriaFiscal or ""
+                    "aliquota": produto.aliquota,
+                    "categoriaFiscal": produto.categoriaFiscal
                 }
-            return None
+                return result
+            else:
+                return None
         finally:
             session.close()
             

@@ -3,16 +3,26 @@ from src.Config import theme
 from src.Components.notificacao import notificacao
 from src.Components.cadastroDialog import CadastroDialog
 from src.Controllers.produtosController import ProdutoController
+from src.Controllers.usuarioController import UsuarioController
 
 def ProdutosAdminContent(page: ft.Page):
     th = theme.get_theme()
     controller = ProdutoController()
     page.prod_search = getattr(page, "prod_search", "")
     tabela_container = ft.Container(expand=True)
+    page.selected_empresa_id = getattr(page, "selected_empresa_id", None)
+    usuarios_controller = UsuarioController()
+    empresas = [{"empresa_id": None, "razaoSocial": "Todas"}] + [
+        {**emp, "empresa_id": emp.get("empresa_id", emp.get("id"))} for emp in usuarios_controller.listar()
+    ]
+
+    def _on_empresa_change(e: ft.ControlEvent):
+        page.selected_empresa_id = e.control.value if e.control.value != "None" else None
+        atualizarTabela()
 
     def _on_search_change(e: ft.ControlEvent):
         page.prod_search = e.control.value
-        page.update()
+        atualizarTabela()
 
     def atualizarTabela():
         tabela_container.content = buildTable()
@@ -20,6 +30,8 @@ def ProdutosAdminContent(page: ft.Page):
 
     def buscar_produtos():
         termo = page.prod_search.lower()
+        empresa_id = page.selected_empresa_id
+        produtos = controller.listar(empresa_id) 
         return [
             {
                 "empresa_id": p["empresa_id"],
@@ -30,7 +42,7 @@ def ProdutosAdminContent(page: ft.Page):
                 "aliquota": f"{p['aliquota']:.2f}%" if isinstance(p["aliquota"], float) else str(p["aliquota"]),
                 "categoriaFiscal": p.get("categoriaFiscal", "") or ""
             }
-            for p in controller.listar()
+            for p in produtos
             if termo in p["produto"].lower() or termo in p["codigo"].lower() or termo in p["ncm"].lower()
         ]
 
@@ -55,13 +67,25 @@ def ProdutosAdminContent(page: ft.Page):
             page,
             titulo="Novo Produto",
             campos=[
-                {"name": "produto", "label": "Nome", "hint": "Digite o nome do produto", "required": True},
+                {
+                    "name": "empresa_id",
+                    "label": "Empresa",
+                    "type": "dropdown",
+                    "options": [emp["razaoSocial"] for emp in empresas if emp["empresa_id"] is not None],
+                    "hint": "Selecione a empresa",
+                    "required": True
+                },
                 {"name": "codigo", "label": "Código", "hint": "Ex: 01"},
                 {"name": "ncm", "label": "NCM", "hint": "Ex: 1234.56.78"},
                 {"name": "aliquota", "label": "Alíquota (%)", "hint": "Digite a alíquota"},
-                {"name": "categoriaFiscal", "label": "Categoria Fiscal", "type": "dropdown", "options":
-                [
-                "28% Bebida Alcoólica", "20% Regra Geral", "12% Cesta Básica", "7% Cesta Básica"]}
+                {
+                    "name": "categoriaFiscal",
+                    "label": "Categoria Fiscal",
+                    "type": "dropdown",
+                    "options": [
+                        "28% Bebida Alcoólica", "20% Regra Geral", "12% Cesta Básica", "7% Cesta Básica"
+                    ]
+                }
             ],
             valores_iniciais=prod,
             on_confirmar=lambda dados: salvarProduto(dados, prod["id"])
@@ -74,7 +98,23 @@ def ProdutosAdminContent(page: ft.Page):
         page.update()
 
     def salvarProduto(dados: dict, id: int = None):
-        dados["empresa_id"] = 1
+        empresa_nome = dados.get("empresa_id")
+        empresa = next((emp for emp in empresas if emp["razaoSocial"] == empresa_nome), None)
+        if empresa:
+            dados["empresa_id"] = empresa["empresa_id"]
+        else:
+            notificacao(page, "Erro ao converter empresa_id", "Empresa inválida selecionada", "error")
+            return
+
+        categorias = {
+            "28% Bebida Alcoólica": "28BebidaAlcoolica",
+            "20% Regra Geral": "20RegraGeral",
+            "12% Cesta Básica": "12CestaBasica",
+            "7% Cesta Básica": "7CestaBasica"
+        }
+        if "categoriaFiscal" in dados:
+            dados["categoriaFiscal"] = categorias.get(dados["categoriaFiscal"], dados["categoriaFiscal"])
+
         try:
             if id:
                 controller.editar(id, dados)
@@ -84,6 +124,7 @@ def ProdutosAdminContent(page: ft.Page):
                 notificacao(page, "Adicionado", "Produto adicionado com sucesso!", "sucesso")
         except ValueError as err:
             notificacao(page, str(err), "error")
+
         atualizarTabela()
         page.update()
 
@@ -135,18 +176,44 @@ def ProdutosAdminContent(page: ft.Page):
             page,
             titulo="Novo Produto",
             campos=[
+                {
+                    "name": "empresa_id",
+                    "label": "Empresa",
+                    "type": "dropdown",
+                    "options": [emp["razaoSocial"] for emp in empresas if emp["empresa_id"] is not None],
+                    "hint": "Selecione a empresa",
+                    "required": True
+                },
                 {"name": "produto", "label": "Nome", "hint": "Digite o nome do produto", "required": True},
                 {"name": "codigo", "label": "Código", "hint": "Ex: PROD-001"},
                 {"name": "ncm", "label": "NCM", "hint": "Ex: 1234.56.78"},
                 {"name": "aliquota", "label": "Alíquota (%)", "hint": "Digite a alíquota"},
-                {"name": "categoriaFiscal", "label": "Categoria Fiscal", "type": "dropdown", "options":
-                    [
+                {
+                    "name": "categoriaFiscal",
+                    "label": "Categoria Fiscal",
+                    "type": "dropdown",
+                    "options": [
                         "28% Bebida Alcoólica", "20% Regra Geral", "12% Cesta Básica", "7% Cesta Básica"
                     ]
                 }
             ],
             on_confirmar=lambda dados: salvarProduto(dados),
         )
+
+    empresa_dropdown = ft.Dropdown(
+        label="Empresa",
+        value=page.selected_empresa_id,
+        options=[
+            ft.dropdown.Option(str(emp["empresa_id"]), emp["razaoSocial"])
+            for emp in empresas
+        ],
+        on_change=_on_empresa_change,
+        width=220,
+        dense=True,
+        border_color=th["BORDER"],
+        border_radius=8,
+        filled=True,
+    )
 
     search = ft.TextField(
         hint_text="Buscar produtos...",
@@ -160,7 +227,7 @@ def ProdutosAdminContent(page: ft.Page):
     )
 
     atualizarTabela()
-    
+
     return ft.Column([
         ft.ResponsiveRow([
             ft.Container(
@@ -186,7 +253,8 @@ def ProdutosAdminContent(page: ft.Page):
         ft.Container(height=16),
 
         ft.ResponsiveRow([
-            ft.Container(search, col={"xs": 12, "sm": 12, "md": 8, "lg": 6})
+            ft.Container(empresa_dropdown, col={"xs": 12, "sm": 6, "md": 4, "lg": 3}),
+            ft.Container(search, col={"xs": 12, "sm": 6, "md": 8, "lg": 6})
         ]),
 
         ft.Container(height=16),
