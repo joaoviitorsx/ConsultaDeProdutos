@@ -48,12 +48,12 @@ async def root():
 async def health_check():
     return {"status": "healthy", "message": "API funcionando corretamente"}
 
-def verificar_status():
+def statusAPI():
     time.sleep(2)
     try:
         response = requests.get("http://localhost:8000/health", timeout=5)
         if response.status_code == 200 and response.json().get("status") == "healthy":
-            print("✅ API ONLINE - Health check bem-sucedido.")
+            print("✅ API ONLINE")
         else:
             print("⚠️ API RESPOSTA INESPERADA:", response.text)
     except requests.exceptions.RequestException as e:
@@ -66,5 +66,5 @@ if __name__ == "__main__":
     print("🔐 Login: http://localhost:8000/api/auth/login")
     print("👤 Me: http://localhost:8000/api/auth/me")  
     
-    threading.Thread(target=verificar_status, daemon=True).start()
+    threading.Thread(target=statusAPI, daemon=True).start()
     uvicorn.run(app, host="0.0.0.0", port=8000)

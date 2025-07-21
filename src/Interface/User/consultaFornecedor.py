@@ -1,3 +1,4 @@
+import os
 import asyncio
 import flet as ft
 import aiohttp
@@ -5,6 +6,9 @@ from src.Config import theme
 from src.Components.notificacao import notificacao
 from src.Components.headerApp import HeaderApp
 from src.Utils.validadores import formatarCnpj, validateCnpj
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def ConsultaFornecedorPage(page: ft.Page):
     print("🟣 Tela Consulta Fornecedor carregada")
@@ -15,7 +19,7 @@ def ConsultaFornecedorPage(page: ft.Page):
     page.window_bgcolor = th["BACKGROUNDSCREEN"]
     fornecedor_data = {}
     
-    API_BASE_URL = "http://localhost:8000/api"
+    API_BASE_URL = os.getenv("API_BASE_URL")
 
     def onThemeChange(novo_tema):
         nonlocal th
