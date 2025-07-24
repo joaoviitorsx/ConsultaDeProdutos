@@ -107,16 +107,21 @@ def CardResultado(resultado: dict) -> ft.Card:
         ),
     ], spacing=8)
 
-    aliquota_banco = str(resultado.get('aliquota_banco', '')).upper()
-    percentual_aliquota = str(resultado.get('percentual_aliquota', '')).upper()
-    is_sem_imposto = aliquota_banco in ["ST", "ISENTO"] or percentual_aliquota in ["ST", "ISENTO"]
+    aliquota_utilizada = resultado.get("aliquota_utilizada", "N/A")
+
+    if isinstance(aliquota_utilizada, (int, float)):
+        aliquota_str = f"{aliquota_utilizada:.2f}%"
+    else:
+        aliquota_str = str(aliquota_utilizada).upper()
+
+    is_sem_imposto = aliquota_str in ["ST", "ISENTO", "0%", "0.00%", "0.0%"]
 
     if is_sem_imposto:
         impostos_produto_texto = "Sem Impostos"
-        aliquota_label = f"Alíquota: {aliquota_banco}"
+        aliquota_label = f"Alíquota: {aliquota_str}"
     else:
-        impostos_produto_texto = f"+{percentual_aliquota} | {formatador(resultado.get('valor_aliquota', 0))}"
-        aliquota_label = f"Alíquota aplicada: {percentual_aliquota}"
+        impostos_produto_texto = f"+{aliquota_str} | {formatador(resultado.get('icms', 0))}"
+        aliquota_label = f"Alíquota aplicada: {aliquota_str}"
 
     regime = str(resultado.get("regime", "")).strip().lower()
     adicional_aplicado = resultado.get("adicional_aplicado", False)

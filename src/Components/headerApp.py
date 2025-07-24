@@ -26,16 +26,17 @@ def HeaderApp(
     largura_maxima=None,            
     margin_horizontal=None          
 ):
-    usuario_id = getattr(page, "usuario_id", "0")
-    is_admin = str(usuario_id) == "1"
+    # Garantia de conversão segura para string
+    usuario_id = str(getattr(page, "usuario_id", "0"))
+    is_admin = usuario_id == "1"
 
     usuario = getattr(page, "usuario_logado", None)
-
-    #print("DEBUG HeaderApp - usuario_id:", usuario_id, "is_admin:", is_admin)
-
     if not usuario:
         usuario = "usuário"
-    
+
+    # Debug opcional
+    # print(f"🛠️ HeaderApp - usuario_id: {usuario_id} | is_admin: {is_admin}")
+
     th = theme.get_theme()
 
     def logout(e):
@@ -71,7 +72,8 @@ def HeaderApp(
         ])
 
     controles_direita = []
-    
+
+    # Engrenagem de admin (usuário com ID = 1)
     if mostrar_usuario and is_admin:
         controles_direita.append(
             ft.IconButton(
@@ -115,50 +117,10 @@ def HeaderApp(
         border_radius=ft.border_radius.all(8),
         height=altura_customizada,
         width=largura_maxima,
-        margin=ft.margin.symmetric(horizontal=margin_horizontal) if margin_horizontal else None  # NOVO
+        margin=ft.margin.symmetric(horizontal=margin_horizontal) if margin_horizontal else None
     )
 
     if mostrar_divider:
-        return ft.Column([
-            container_header,
-            ft.Divider(color=th["TEXT_SECONDARY"], opacity=0.3, height=1)
-        ], spacing=0)
+        return ft.Column([container_header, ft.Divider(color=th["TEXT_SECONDARY"], opacity=0.3, height=1)], spacing=0)
     
     return container_header
-
-def HeaderSimples(page: ft.Page, titulo="", on_theme_changed=None):
-    return HeaderApp(
-        page=page,
-        titulo_tela=titulo,
-        on_theme_changed=on_theme_changed,
-        mostrar_usuario=False,
-        mostrar_theme_toggle=False,
-        mostrar_logout=False
-    )
-
-def HeaderCompleto(page: ft.Page, titulo="", on_theme_changed=None, mostrar_voltar=True):
-    return HeaderApp(
-        page=page,
-        titulo_tela=titulo,
-        on_theme_changed=on_theme_changed,
-        mostrar_voltar=mostrar_voltar,
-        mostrar_divider=True
-    )
-
-def HeaderCustom(page: ft.Page, botoes_extras=None, **kwargs):
-    return HeaderApp(
-        page=page,
-        botoes_customizados=botoes_extras or [],
-        **kwargs
-    )
-
-def HeaderAlinhado(page: ft.Page, titulo="", on_theme_changed=None, **kwargs):
-    return HeaderApp(
-        page=page,
-        titulo_tela=titulo,
-        on_theme_changed=on_theme_changed,
-        expand=False,
-        largura_maxima=None,
-        **kwargs
-    )
-

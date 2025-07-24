@@ -6,10 +6,13 @@ from src.Components.headerApp import HeaderApp
 from src.Components.cardSection import DashboardCards
 from src.Components.section import welcomeSection, titleSection, footer
 
-def DashboardPage(page: ft.Page):
+def DashboardPage(page: ft.Page, usuario_info=None):
     print("🟠 Tela Dashboard carregada")
 
     th = theme.apply_theme(page)
+
+    if usuario_info:
+        page.usuario_info = usuario_info
 
     header_container = ft.Container()
     main_content = ft.Column([], spacing=0, expand=True)
@@ -24,7 +27,7 @@ def DashboardPage(page: ft.Page):
             page.views[-1].bgcolor = th["BACKGROUNDSCREEN"]
 
         header_container.content = HeaderApp(
-            page, 
+            page,
             on_theme_changed=onThemeChange,
             mostrar_voltar=False,
             expand=False,
@@ -35,10 +38,10 @@ def DashboardPage(page: ft.Page):
         page.update()
 
     def updateDashboardContent():
-        usuarioLogado = getattr(page, "usuario_info", {"nome": "usuário"})
+        usuario = getattr(page, "usuario_info", {"nome": "usuário"})
         main_content.controls.clear()
         main_content.controls.extend([
-            welcomeSection(usuarioLogado, page),
+            welcomeSection(usuario, page),
             ft.Container(height=40),
             titleSection("Módulos Disponíveis", "Acesse as funcionalidades do sistema"),
             DashboardCards(

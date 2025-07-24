@@ -95,7 +95,7 @@ def ConsultaRelatorioPage(page: ft.Page):
                 empresa_id = getattr(page, "selected_empresa_id", 1)
                 mes_num = int(combo_mes.value[:2])
                 ano_num = int(combo_ano.value)
-                url = "http://localhost:8000/api/consultas-relatorio"
+                url = "https://api.assertivus.realizesoftware.com.br/api/consultas-relatorio"
                 async with httpx.AsyncClient() as client:
                     resp = await client.get(url, params={
                         "empresa_id": empresa_id,
@@ -276,7 +276,7 @@ def ConsultaRelatorioPage(page: ft.Page):
             total_consultas = len(dados_relatorio)
             valor_total = sum(item["valor_final"] for item in dados_relatorio)
             total_impostos = sum(item["total_impostos"] for item in dados_relatorio)
-            
+
             stats_row = ft.ResponsiveRow([
                 ft.Container(
                     content=ft.Column([
@@ -313,6 +313,8 @@ def ConsultaRelatorioPage(page: ft.Page):
                 )
             ], spacing=16, run_spacing=16)
 
+            atualizar_tabela()
+
             resultados_card.content.content = ft.Column([
                 ft.Row([
                     ft.Icon(name="assessment", color=th.get("SUCCESS", "#10B981"), size=24),
@@ -329,7 +331,7 @@ def ConsultaRelatorioPage(page: ft.Page):
 
                 stats_row,
 
-                ft.Container(height=16),
+                ft.Container(height=24),
 
                 ft.Container(
                     content=ft.Row(
@@ -341,7 +343,7 @@ def ConsultaRelatorioPage(page: ft.Page):
                     padding=0
                 )
             ], spacing=16, expand=True)
-            
+
             atualizar_tabela()
 
     header_container = ft.Container(

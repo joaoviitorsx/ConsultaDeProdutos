@@ -60,7 +60,7 @@ class ConsultaProdutosService:
         Regras fiscais:
         - Se fornecedor é do CE e decreto se aplica, zera impostos.
         - Se alíquota for ST ou ISENTO, não calcula imposto.
-        - Em todos os casos, exceto isenções, validar a alíquota via tabela decreto (categoriaFiscal + UF).
+        - Se fornecedor for fora do CE, ignora alíquota do banco e usa tabela decreto (categoriaFiscal + UF).
         - Se fornecedor é Simples, soma 3% ao valor final.
         """
         valor = float(valor_produto)
@@ -87,33 +87,38 @@ class ConsultaProdutosService:
                 "adicional_simples": 0.0
             }
 
-        # Regra 3: Validação da alíquota com a tabela decreto, apenas para fora do CE
-        if categoriaFiscal and uf and uf != "CE":
-            aliquotaDecreto = self.produtoModel.decreto(uf, categoriaFiscal)
-            if aliquotaDecreto is not None:
-                aliquota = aliquotaDecreto
-            else:
+        # Regra 3: Fornecedor fora do CE → usar tabela decreto
+        if uf and uf != "CE" and categoriaFiscal:
+            aliquota_decreto = self.produtoModel.decreto(uf, categoriaFiscal)
+            if aliquota_decreto is None:
                 raise ValueError(f"Não foi encontrada alíquota para UF={uf} e categoria={categoriaFiscal}")
+            aliquota_convertida = float(str(aliquota_decreto).replace('%', '').replace(',', '.'))
+            regra = "Alíquota via tabela decreto"
+        else:
+            # Caso CE (sem isenção ou ST) → usa alíquota do produto
+            try:
+                aliquota_convertida = float(str(aliquota).replace('%', '').replace(',', '.'))
+                regra = "Alíquota padrão"
+            except ValueError:
+                raise ValueError("Alíquota inválida no banco de dados.")
 
-        # Conversão e aplicação de alíquota
-        aliquota = float(str(aliquota).replace('%', '').replace(',', '.'))
-        icms = valor * (aliquota / 100)
-        simplesNacional = 0.0
-        regra = "Alíquota padrão"
-        aliquotaFinal = aliquota
+        # Cálculo de imposto
+        icms = valor * (aliquota_convertida / 100)
+        adicional_simples = 0.0
 
         if regime.lower() == "simples nacional":
-            simplesNacional = valor * 0.03
-            regra = "Simples Nacional (3% adicional)"
+            adicional_simples = valor * 0.03
+            regra += " + Simples Nacional (3%)"
 
-        valorImposto = icms + simplesNacional
-        valorFinal = valor + valorImposto
+        valor_imposto = icms + adicional_simples
+        valor_final = valor + valor_imposto
 
         return {
-            "aliquota_utilizada": aliquotaFinal,
+            "aliquota_utilizada": f"{aliquota_convertida:.2f}%",
             "regra_aplicada": regra,
-            "valor_imposto": valorImposto,
-            "valor_final": valorFinal,
-            "icms": icms,
-            "adicional_simples": simplesNacional,
+            "valor_imposto": round(valor_imposto, 2),
+            "valor_final": round(valor_final, 2),
+            "icms": round(icms, 2),
+            "adicional_simples": round(adicional_simples, 2),
         }
+

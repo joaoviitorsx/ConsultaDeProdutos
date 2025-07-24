@@ -16,6 +16,9 @@ def ConsultaProdutosPage(page: ft.Page):
         notificacao(page, "Erro", "Empresa não identificada. Faça login novamente.", "erro")
         return
     
+    print(f"DEBUG selected_empresa_id: {page.selected_empresa_id}")
+    print(f"DEBUG session.usuario_id: {page.session.get('usuario_id')}")
+
     theme.apply_theme(page)
     th = theme.get_theme()
 
@@ -207,22 +210,22 @@ def ConsultaProdutosPage(page: ft.Page):
                 "regime": regime,
                 "valor_produto": valor_produto,
                 "valor_final": resultado_api.get("valor_final", valor_produto),
-                "aliquota_aplicada": resultado_api.get("aliquota_aplicada", False),
-                "adicional_aplicado": resultado_api.get("adicional_simples", 0) > 0,
                 "uf": fornecedor_api.get("uf", ""),
                 "decreto": decreto,
                 "melhor_opcao": False,
+
                 # Dados do produto:
                 "nome_produto": produto_api.get("produto", ""),
                 "ncm": produto_api.get("ncm", ""),
                 "aliquota_banco": produto_api.get("aliquota", ""),
-                # Detalhes dos impostos:
-                "percentual_aliquota": str(produto_api.get("aliquota", "")),
-                "valor_aliquota": resultado_api.get("icms", 0),
+
+                # Dados fiscais esperados pelo CardResultado:
+                "aliquota_utilizada": resultado_api.get("aliquota_utilizada", ""),
+                "icms": resultado_api.get("icms", 0),
                 "percentual_aliquota": f"{resultado_api.get('aliquota_utilizada', '')}%",
                 "valor_adicional_simples": resultado_api.get("adicional_simples", 0),
-                "percentual_adicional": "3%" if "simples" in regime.lower() and resultado_api.get("adicional_simples", 0) > 0 else "0",
-                "valor_adicional_simples": resultado_api.get("adicional_simples", 0),
+                "percentual_adicional": "3%" if "simples" in regime.lower() and resultado_api.get("adicional_simples", 0) > 0 else "0%",
+                "adicional_aplicado": resultado_api.get("adicional_simples", 0) > 0,
             }
 
             nonlocal resultados_data
