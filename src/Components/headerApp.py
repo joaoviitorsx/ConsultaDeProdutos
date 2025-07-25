@@ -49,7 +49,7 @@ def HeaderApp(
     
     if mostrar_logo:
         controles_esquerda.append(
-            ft.Image(src=os.path.join("images", "icone.png"), width=40, height=40)
+            ft.Image(src="images/icone.png", width=40, height=40)
         )
     
     if mostrar_nome_empresa:

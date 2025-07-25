@@ -19,8 +19,8 @@ SECRET_KEY = os.getenv("JWT_KEY", "jwt_token")
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60 * 8))
 
-API_URL = os.getenv("API_URL", "http://localhost:8000/api/auth/login")
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000/api")
+API_URL = os.getenv("API_URL")
+BACKEND_URL = os.getenv("BACKEND_URL")
 
 async def sincronizarProdutos(cnpj: str, token: str, page):
     print(f"🔄 Verificando necessidade de sincronização para CNPJ: {cnpj}")

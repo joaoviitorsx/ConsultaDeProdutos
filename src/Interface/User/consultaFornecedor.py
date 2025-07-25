@@ -161,9 +161,6 @@ def ConsultaFornecedorPage(page: ft.Page):
 
                         notificacao(page, "Fornecedor encontrado", "Dados carregados com sucesso!", "sucesso")
 
-                        if fornecedor_data["regime"] != "Simples Nacional":
-                            notificacao(page, "Atenção ao regime tributário", f"Fornecedor no regime {fornecedor_data['regime']}. Verifique as alíquotas.", "alerta")
-
                         if fornecedor_data["isento"]:
                             notificacao(page, "Fornecedor isento", "Este fornecedor é isento de ICMS conforme Decreto 29.560/08.", "info")
 

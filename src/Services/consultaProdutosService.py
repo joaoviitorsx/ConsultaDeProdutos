@@ -65,6 +65,14 @@ class ConsultaProdutosService:
         """
         valor = float(valor_produto)
 
+        print("🟨 DEBUG - INÍCIO cálculo de imposto")
+        print(f"🔹 Valor do produto: {valor}")
+        print(f"🔹 UF fornecedor: {uf}")
+        print(f"🔹 Regime tributário: {regime}")
+        print(f"🔹 Categoria Fiscal: {categoriaFiscal}")
+        print(f"🔹 Alíquota do produto (banco): {aliquota}")
+        print(f"🔹 Decreto aplica? {'Sim' if decreto else 'Não'}")
+
         # Regra 1: Produto isento por decreto estadual (somente CE)
         if uf == "CE" and decreto:
             return {
@@ -90,6 +98,7 @@ class ConsultaProdutosService:
         # Regra 3: Fornecedor fora do CE → usar tabela decreto
         if uf and uf != "CE" and categoriaFiscal:
             aliquota_decreto = self.produtoModel.decreto(uf, categoriaFiscal)
+            print(f"🔸 Alíquota via decreto encontrada: {aliquota_decreto}")
             if aliquota_decreto is None:
                 raise ValueError(f"Não foi encontrada alíquota para UF={uf} e categoria={categoriaFiscal}")
             aliquota_convertida = float(str(aliquota_decreto).replace('%', '').replace(',', '.'))
@@ -112,6 +121,13 @@ class ConsultaProdutosService:
 
         valor_imposto = icms + adicional_simples
         valor_final = valor + valor_imposto
+
+        print("🟩 RESULTADO DO CÁLCULO:")
+        print(f"🔹 Aliquota utilizada: {aliquota_convertida:.2f}%")
+        print(f"🔹 ICMS: {icms:.2f}")
+        print(f"🔹 Adicional Simples: {adicional_simples:.2f}")
+        print(f"🔹 Valor final: {valor_final:.2f}")
+        print(f"📌 Regra aplicada: {regra}")
 
         return {
             "aliquota_utilizada": f"{aliquota_convertida:.2f}%",

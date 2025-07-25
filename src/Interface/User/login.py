@@ -30,7 +30,6 @@ def LoginPage(page: ft.Page):
                     page.usuario_logado = data["data"]["usuario"]
                     page.razao_social = data["data"].get("nome")
                     page.selected_empresa_id = data["data"]["empresa_id"]
-                    # Salva o dicionário completo para usar no dashboard
                     page.usuario_info = {
                         "nome": data["data"].get("nome"),
                         "usuario": data["data"]["usuario"],
@@ -136,7 +135,7 @@ def LoginPage(page: ft.Page):
         )
     )
 
-    logo = os.path.join("images", "logo.png")
+    logo = "images/logo.png"
 
     card_container = ft.Container(
         width=420,

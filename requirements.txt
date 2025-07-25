@@ -11,3 +11,5 @@ sqlalchemy
 pymysql
 httpx
 uvicorn
+requests
+cryp

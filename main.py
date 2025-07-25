@@ -41,4 +41,4 @@ def main(page: ft.Page):
 
     page.go("/login")
 
-ft.app(target=main, assets_dir="src/Assets")
+ft.app(target=main, assets_dir="assets")
