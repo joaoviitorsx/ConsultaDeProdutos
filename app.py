@@ -8,10 +8,11 @@ from src.Interface.User.consultaFornecedor import ConsultaFornecedorPage
 from src.Interface.User.consultaProdutos import ConsultaProdutosPage
 from src.Interface.User.consultaRelatorio import ConsultaRelatorioPage
 from src.Components.adminLayout import AdminLayout
+from src.Utils.path import resourcePath
 
 def main(page: ft.Page):
     theme.set_theme("light")
-    page.window_icon = "images/icone.ico"
+    page.window.icon = resourcePath("C:\\Users\\joaov\\OneDrive\\Documentos\\Estagio\\ConsultaProdutosFlet\\src\\Assets\\images\\icone.ico")
 
     def route_change(e):
         page.views.clear()

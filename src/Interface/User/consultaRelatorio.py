@@ -1,11 +1,14 @@
+import time
+import httpx
+import threading
 import flet as ft
+from datetime import datetime
 from datetime import datetime, timedelta
 from src.Config import theme
 from src.Components.headerApp import HeaderApp
 from src.Components.notificacao import notificacao
-import threading
-import time
-import httpx
+from src.Utils.validadores import formatador
+from src.Utils.pdf import gerarPdfRelatorio
 
 def ConsultaRelatorioPage(page: ft.Page):
     print("🟡 Tela Consulta Relatórios carregada")
@@ -14,7 +17,6 @@ def ConsultaRelatorioPage(page: ft.Page):
     page.bgcolor = th["BACKGROUNDSCREEN"]
     page.window_bgcolor = th["BACKGROUNDSCREEN"]
     
-    # Estados da aplicação
     dados_relatorio = []
     carregando = False
     periodo_selecionado = {"mes": "", "ano": ""}
@@ -41,7 +43,6 @@ def ConsultaRelatorioPage(page: ft.Page):
         page.update()
 
     def atualizar_tema_componentes():
-        # Atualizar título
         titulo_secao.content = ft.Column([
             ft.Text("Histórico de Consultas", 
                 size=32, weight="bold", color=th["TEXT"]),
@@ -49,7 +50,6 @@ def ConsultaRelatorioPage(page: ft.Page):
                 size=18, color=th["TEXT_SECONDARY"]),
         ], spacing=8)
         
-        # Atualizar card de filtros
         filtros_card.content.bgcolor = th["CARD"]
         combo_mes.bgcolor = th["BACKGROUNDSCREEN"]
         combo_mes.color = th["TEXT"]
@@ -68,9 +68,6 @@ def ConsultaRelatorioPage(page: ft.Page):
         
         if dados_relatorio:
             atualizar_tabela()
-
-    def format_currency(valor):
-        return f"R$ {valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
 
     def consultar_relatorio(e):
         if not combo_mes.value or not combo_ano.value:
@@ -95,7 +92,7 @@ def ConsultaRelatorioPage(page: ft.Page):
                 empresa_id = getattr(page, "selected_empresa_id", 1)
                 mes_num = int(combo_mes.value[:2])
                 ano_num = int(combo_ano.value)
-                url = "https://api.assertivus.realizesoftware.com.br/api/consultas-relatorio"
+                url = "http://localhost:8000/api/consultas-relatorio"
                 async with httpx.AsyncClient() as client:
                     resp = await client.get(url, params={
                         "empresa_id": empresa_id,
@@ -107,7 +104,7 @@ def ConsultaRelatorioPage(page: ft.Page):
                 nonlocal dados_relatorio, carregando
                 dados_relatorio = [
                     {
-                        "data": c["dataConsulta"][:10][::-1].replace("-", "/") if c.get("dataConsulta") else "",
+                        "data": datetime.strptime(c["dataConsulta"], "%Y-%m-%dT%H:%M:%S").strftime("%d/%m/%Y") if c.get("dataConsulta") else "",
                         "fornecedor": c.get("nomeFornecedor", ""),
                         "cnpj": c.get("cnpjFornecedor", ""),
                         "produto": c.get("produto", ""),
@@ -141,27 +138,8 @@ def ConsultaRelatorioPage(page: ft.Page):
         if not dados_relatorio:
             notificacao(page, "Atenção", "Consulte os dados antes de gerar o PDF", "alerta")
             return
-        
-        botao_pdf.disabled = True
-        botao_pdf.content = ft.Row([
-            ft.ProgressRing(width=16, height=16, stroke_width=2, color="white"),
-            ft.Text("Gerando...", color="white")
-        ], spacing=8)
-        page.update()
-        
-        def processar_pdf():
-            time.sleep(3)
-            
-            botao_pdf.disabled = False
-            botao_pdf.content = ft.Row([
-                ft.Icon(name="picture_as_pdf", size=16, color="white"),
-                ft.Text("Gerar PDF", color="white")
-            ], spacing=8)
-            
-            notificacao(page, "PDF Gerado", "Relatório exportado com sucesso!", "sucesso")
-            page.update()
-        
-        threading.Thread(target=processar_pdf).start()
+
+        gerarPdfRelatorio(page, dados_relatorio, botao_pdf, notificacao)
 
     def atualizar_tabela():
         if not dados_relatorio:
@@ -191,14 +169,14 @@ def ConsultaRelatorioPage(page: ft.Page):
                         ft.DataCell(ft.Text(item["cnpj"], color=th["TEXT"], size=12, font_family="monospace")),
                         ft.DataCell(ft.Text(item["produto"], color=th["TEXT"], size=12)),
                         ft.DataCell(ft.Text(item["codigo"], color=th["TEXT"], size=12, font_family="monospace")),
-                        ft.DataCell(ft.Text(format_currency(item["valor_base"]), color=th["TEXT"], size=12)),
+                        ft.DataCell(ft.Text(formatador(item["valor_base"]), color=th["TEXT"], size=12)),
                         ft.DataCell(ft.Container(
                             content=ft.Text(item["regime"], color="white", size=10, weight="bold"),
                             bgcolor=cor_regime,
                             padding=ft.padding.symmetric(horizontal=8, vertical=4),
                             border_radius=12
                         )),
-                        ft.DataCell(ft.Text(format_currency(item["valor_final"]), color=th["TEXT"], size=12, weight="bold"))
+                        ft.DataCell(ft.Text(formatador(item["valor_final"]), color=th["TEXT"], size=12, weight="bold"))
                     ],
                     color=cor_linha
                 )
@@ -208,7 +186,7 @@ def ConsultaRelatorioPage(page: ft.Page):
             columns=colunas,
             rows=linhas,
             heading_row_color=th["PRIMARY_COLOR"],
-            heading_row_height=48,
+            heading_row_height=64,
             data_row_color={"even": f"{th['CARD']}E", "odd": th["BACKGROUNDSCREEN"]},
             divider_thickness=1,
             data_row_min_height=50,
@@ -216,29 +194,27 @@ def ConsultaRelatorioPage(page: ft.Page):
             column_spacing=16,
             border=ft.border.all(1, th["PRIMARY_COLOR"]),
             border_radius=12,
-            horizontal_margin=0,
+            horizontal_margin=32,
         )
 
         tabela_container.content = ft.Container(
-            content=ft.Row(
-                controls=[
-                    ft.Container(
-                        content=nova_tabela,
-                        padding=8,
-                        bgcolor=th["CARD"],
-                        border_radius=12,
-                        shadow=ft.BoxShadow(blur_radius=16, color="#00000022", offset=ft.Offset(0, 4)),
-                        alignment=ft.alignment.center,
-                        expand=True,
-                        height=350,
-                        width=1100
-                    ),
-                ],
-                alignment=ft.MainAxisAlignment.CENTER
-            ),
             expand=True,
             padding=0,
             bgcolor="transparent",
+            content=ft.Container(
+                padding=0,
+                bgcolor=th["CARD"],
+                border_radius=12,
+                shadow=ft.BoxShadow(blur_radius=16, color="#00000022", offset=ft.Offset(0, 4)),
+                expand=True,
+                content=ft.ResponsiveRow([
+                    ft.Container(
+                        content=nova_tabela,
+                        col={"sm": 12, "md": 12, "lg": 12},
+                        expand=True
+                    )
+                ], spacing=0, run_spacing=0, expand=True)
+            )
         )
 
     def atualizar_area_resultados(carregando=False):
@@ -266,55 +242,13 @@ def ConsultaRelatorioPage(page: ft.Page):
                         border=ft.border.all(1, th["TEXT_SECONDARY"])
                     ),
                     ft.Text("Nenhum relatório encontrado", size=20, weight="bold", color=th["TEXT"], text_align="center"),
-                    ft.Text("Selecione um período e clique em 'Consultar' para visualizar os dados", 
-                            color=th["TEXT_SECONDARY"], text_align="center", size=14)
+                    ft.Text("Selecione um período e clique em 'Consultar' para visualizar os dados", color=th["TEXT_SECONDARY"], text_align="center", size=14)
                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=8),
                 padding=64,
                 alignment=ft.alignment.center
             )
         else:
-            total_consultas = len(dados_relatorio)
-            valor_total = sum(item["valor_final"] for item in dados_relatorio)
-            total_impostos = sum(item["total_impostos"] for item in dados_relatorio)
-
-            stats_row = ft.ResponsiveRow([
-                ft.Container(
-                    content=ft.Column([
-                        ft.Text(str(total_consultas), size=28, weight="bold", color=th["PRIMARY_COLOR"]),
-                        ft.Text("Consultas", size=14, color=th["TEXT_SECONDARY"])
-                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4),
-                    bgcolor=f"{th['PRIMARY_COLOR']}10",
-                    padding=20,
-                    border_radius=16,
-                    border=ft.border.all(1, f"{th['PRIMARY_COLOR']}30"),
-                    col={"sm": 12, "md": 4}
-                ),
-                ft.Container(
-                    content=ft.Column([
-                        ft.Text(format_currency(valor_total), size=24, weight="bold", color=th.get("SUCCESS", "#10B981")),
-                        ft.Text("Valor Total", size=14, color=th["TEXT_SECONDARY"])
-                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4),
-                    bgcolor=f"{th.get('SUCCESS', '#10B981')}10",
-                    padding=20,
-                    border_radius=16,
-                    border=ft.border.all(1, f"{th.get('SUCCESS', '#10B981')}30"),
-                    col={"sm": 12, "md": 4}
-                ),
-                ft.Container(
-                    content=ft.Column([
-                        ft.Text(format_currency(total_impostos), size=24, weight="bold", color=th.get("WARNING", "#F59E0B")),
-                        ft.Text("Total Impostos", size=14, color=th["TEXT_SECONDARY"])
-                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4),
-                    bgcolor=f"{th.get('WARNING', '#F59E0B')}10",
-                    padding=20,
-                    border_radius=16,
-                    border=ft.border.all(1, f"{th.get('WARNING', '#F59E0B')}30"),
-                    col={"sm": 12, "md": 4}
-                )
-            ], spacing=16, run_spacing=16)
-
             atualizar_tabela()
-
             resultados_card.content.content = ft.Column([
                 ft.Row([
                     ft.Icon(name="assessment", color=th.get("SUCCESS", "#10B981"), size=24),
@@ -326,22 +260,8 @@ def ConsultaRelatorioPage(page: ft.Page):
                         border_radius=12
                     )
                 ], spacing=12),
-
-                ft.Container(height=16),
-
-                stats_row,
-
                 ft.Container(height=24),
-
-                ft.Container(
-                    content=ft.Row(
-                        controls=[tabela_container],
-                        scroll=ft.ScrollMode.AUTO,
-                        expand=True
-                    ),
-                    expand=True,
-                    padding=0
-                )
+                tabela_container
             ], spacing=16, expand=True)
 
             atualizar_tabela()
@@ -454,7 +374,7 @@ def ConsultaRelatorioPage(page: ft.Page):
         )
     )
 
-    tabela_container = ft.Container()
+    tabela_container = ft.Container(expand=True)
 
     resultados_card = ft.Card(
         elevation=8,
@@ -480,7 +400,8 @@ def ConsultaRelatorioPage(page: ft.Page):
                             color=th["TEXT_SECONDARY"], text_align="center", size=14)
                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=8),
                 padding=64,
-                alignment=ft.alignment.center
+                alignment=ft.alignment.center,
+                expand=True
             )
         )
     )
@@ -496,11 +417,11 @@ def ConsultaRelatorioPage(page: ft.Page):
                         titulo_secao,
                         filtros_card,
                         resultados_card
-                    ], spacing=24),
+                    ], spacing=24, expand=True),
                     padding=24,
                     expand=True
                 )
-            ])
+            ], expand=True)
         ],
         scroll=ft.ScrollMode.ADAPTIVE
     )

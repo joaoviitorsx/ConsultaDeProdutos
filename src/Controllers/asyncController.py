@@ -1,6 +1,6 @@
 import traceback
 from fastapi.responses import JSONResponse
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 from src.Config.database.dbEmpresas import SessionLocalEmpresas
 from src.Config.database.dbConsultaProdutos import SessionLocalConsulta
@@ -25,6 +25,7 @@ def getDbConsulta():
 
 @router.post("/sincronizar-produtos")
 def sincronizarProdutosRoute(
+    dados: dict = Body(...),
     db_empresas: Session = Depends(getDbEmpresas),
     db_consulta: Session = Depends(getDbConsulta),
     current_user: dict = Depends(verificarToken)
@@ -34,13 +35,38 @@ def sincronizarProdutosRoute(
         if not cnpj:
             raise HTTPException(status_code=400, detail="CNPJ não encontrado no token")
 
-        resultado = sincroanizarProdutos(cnpj, db_empresas, db_consulta)
-        return resultado
+        offset = dados.get("offset", 0)
+        limite = dados.get("limite", 1000)
+        
+        resultado = sincroanizarProdutos(
+            cnpj, 
+            db_empresas, 
+            db_consulta, 
+            offset=offset, 
+            limite=limite
+        )
+        
+        from src.Models.apuradorModel import Empresa, CadastroTributacao
+        empresa = db_empresas.query(Empresa).filter(Empresa.cnpj == cnpj).first()
+        total_produtos = db_empresas.query(CadastroTributacao).filter(
+            CadastroTributacao.empresa_id == empresa.id
+        ).count() if empresa else 0
+        
+        concluido = (offset + limite) >= total_produtos or resultado.get("produtos_inseridos", 0) == 0
+        
+        return {
+            **resultado,
+            "concluido": concluido,
+            "total_produtos": total_produtos
+        }
 
     except Exception as e:
         print(f"❌ Erro ao sincronizar produtos: {e}")
-        return {"message": "Erro interno ao sincronizar produtos"}
-
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500, 
+            content={"erro": f"Erro interno ao sincronizar produtos: {str(e)}"}
+        )
 
 @router.get("/verificar-sincronizacao")
 def verificarSincronizacao(cnpj: str, db_empresas: Session = Depends(getDbEmpresas), db_consulta: Session = Depends(getDbConsulta)):
@@ -60,9 +86,14 @@ def verificarSincronizacao(cnpj: str, db_empresas: Session = Depends(getDbEmpres
         total_destino = db_consulta.query(Produto).filter(Produto.empresa_id == usuario.empresa_id).count()
 
         if total_origem != total_destino:
-            return {"necessita_sincronizar": True}
+            return {
+                "necessita_sincronizar": True,
+                "total_produtos": total_origem, 
+                "produtos_origem": total_origem,
+                "produtos_destino": total_destino
+            }
         
-        return {"necessita_sincronizar": False}
+        return {"necessita_sincronizar": False, "total_produtos": total_origem}
     
     except Exception as e:
         print(f"❌ Erro ao verificar sincronização: {e}")

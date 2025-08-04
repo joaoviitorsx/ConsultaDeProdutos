@@ -3,6 +3,7 @@ import flet as ft
 from src.Config import theme
 from src.Components.notificacao import notificacao
 from src.Controllers.loginController import realizarLogin
+from src.Utils.path import resourcePath
 
 def LoginPage(page: ft.Page):
     print("🟢 Tela Login carregada")
@@ -135,7 +136,7 @@ def LoginPage(page: ft.Page):
         )
     )
 
-    logo = "images/logo.png"
+    logo = resourcePath("src/Assets/images/logo.png")
 
     card_container = ft.Container(
         width=420,

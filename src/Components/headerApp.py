@@ -2,6 +2,7 @@ import os
 import flet as ft
 from src.Config import theme
 from src.Components.trocaTema import ThemeToggle
+from src.Utils.path import resourcePath
 
 def HeaderApp(
     page: ft.Page, 
@@ -47,9 +48,11 @@ def HeaderApp(
 
     controles_esquerda = []
     
+    logo = resourcePath("src/Assets/images/icone.png")
+
     if mostrar_logo:
         controles_esquerda.append(
-            ft.Image(src="images/icone.png", width=40, height=40)
+            ft.Image(src=logo, width=40, height=40)
         )
     
     if mostrar_nome_empresa:
