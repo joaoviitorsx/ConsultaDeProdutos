@@ -296,12 +296,12 @@ def ConsultaFornecedorPage(page: ft.Page):
         bgcolor=th["BACKGROUNDSCREEN"],
         controls=[
             ft.Container(
-                padding=24,
                 content=ft.Column([
-                    header_container, 
+                    header_container,
                     search_card,
                     resultado_container
                 ], spacing=24),
+                padding=24,
                 expand=True
             )
         ],

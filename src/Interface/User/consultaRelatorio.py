@@ -273,7 +273,7 @@ def ConsultaRelatorioPage(page: ft.Page):
             on_theme_changed=on_theme_change, 
             mostrar_voltar=True,
             mostrar_logo=False, 
-            mostrar_nome_empresa=False
+            mostrar_nome_empresa=False,
         )
     )
 
@@ -410,18 +410,16 @@ def ConsultaRelatorioPage(page: ft.Page):
         route="/consulta_relatorio",
         bgcolor=th["BACKGROUNDSCREEN"],
         controls=[
-            ft.Column([
-                header_container,
-                ft.Container(
-                    content=ft.Column([
-                        titulo_secao,
-                        filtros_card,
-                        resultados_card
-                    ], spacing=24, expand=True),
-                    padding=24,
-                    expand=True
-                )
-            ], expand=True)
+            ft.Container(
+                content=ft.Column([
+                    header_container,
+                    titulo_secao,
+                    filtros_card,
+                    resultados_card
+                ], spacing=24, expand=True),
+                padding=24,
+                expand=True
+            )
         ],
         scroll=ft.ScrollMode.ADAPTIVE
     )

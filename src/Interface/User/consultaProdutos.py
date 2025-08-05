@@ -485,17 +485,15 @@ def ConsultaProdutosPage(page: ft.Page):
         route="/consulta_produtos",
         bgcolor=th.get("BACKGROUNDSCREEN", "#FFFFFF"),
         controls=[
-            ft.Column([
-                header_container,
-                ft.Container(
-                    content=ft.Column([
-                        titulo_secao,
-                        layout_principal
-                    ], spacing=0, expand=True),
-                    padding=24,
-                    expand=True
-                ),
-            ], expand=True)
+            ft.Container(
+                content=ft.Column([
+                    header_container,     
+                    titulo_secao,
+                    layout_principal
+                ], spacing=24, expand=True),
+                padding=24,              
+                expand=True
+            )
         ],
         scroll=ft.ScrollMode.AUTO,
     )
