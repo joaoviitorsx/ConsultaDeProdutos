@@ -37,13 +37,13 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
     
     def validarCampos():
         cnpj_digits = fornecedor["cnpj"].replace(".", "").replace("/", "").replace("-", "")
-        cnpj_valido = len(cnpj_digits) == 14
+        cnpj_valido = len(cnpj_digits) == 14 and cnpj_digits.isdigit() 
 
         codigo_valido = len(fornecedor["codigo_produto"]) > 0
         valor_valido = len(fornecedor["valor_produto"]) > 0
         
-        if fornecedor["cnpj"] and not cnpj_valido:
-            validation_messages["cnpj"] = "CNPJ deve ter 14 dígitos"
+        if fornecedor["cnpj"] and len(cnpj_digits) == 14 and not cnpj_valido:
+            validation_messages["cnpj"] = "CNPJ deve ter 14 dígitos numéricos"
         else:
             validation_messages["cnpj"] = ""
             
@@ -58,39 +58,33 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
             validation_messages["valor"] = ""
 
         if botao_processar:
+            todos_preenchidos = bool(fornecedor["cnpj"] and fornecedor["codigo_produto"] and fornecedor["valor_produto"])
             todos_validos = cnpj_valido and codigo_valido and valor_valido
-            botao_processar.disabled = fornecedor["processando"] or not todos_validos
             
-            if fornecedor["processando"]:
-                botao_processar.bgcolor = th.get("WARNING", "#F59E0B")
-            elif todos_validos:
-                botao_processar.bgcolor = th.get("SUCCESS", "#10B981")
+            if not fornecedor["processando"]:
+                botao_processar.disabled = not (todos_preenchidos and todos_validos)
+                
+                if todos_preenchidos and todos_validos:
+                    botao_processar.bgcolor = th.get("SUCCESS", "#10B981")
+                else:
+                    botao_processar.bgcolor = th["TEXT_SECONDARY"]
             else:
-                botao_processar.bgcolor = th["TEXT_SECONDARY"]
+                botao_processar.bgcolor = th.get("WARNING", "#F59E0B")
         
         if cnpj_field:
             if fornecedor["cnpj"]:
-                cnpj_field.border_color = th.get("SUCCESS", "#10B981") if cnpj_valido else th.get("ERROR", "#EF4444")
-                cnpj_field.error_text = validation_messages["cnpj"]
+                if len(cnpj_digits) == 14:
+                    cnpj_field.border_color = th.get("SUCCESS", "#10B981") if cnpj_valido else th.get("ERROR", "#EF4444")
+                    cnpj_field.error_text = validation_messages["cnpj"] if not cnpj_valido else None
+                else:
+                    cnpj_field.border_color = th["PRIMARY_COLOR"]
+                    cnpj_field.error_text = None
             else:
                 cnpj_field.border_color = th["TEXT_SECONDARY"]
                 cnpj_field.error_text = None
-                
-        if codigo_field:
-            if fornecedor["codigo_produto"]:
-                codigo_field.border_color = th.get("SUCCESS", "#10B981") if codigo_valido else th.get("ERROR", "#EF4444")
-                codigo_field.error_text = validation_messages["codigo"]
-            else:
-                codigo_field.border_color = th["TEXT_SECONDARY"]
-                codigo_field.error_text = None
-                
-        if valor_field:
-            if fornecedor["valor_produto"]:
-                valor_field.border_color = th.get("SUCCESS", "#10B981") if valor_valido else th.get("ERROR", "#EF4444")
-                valor_field.error_text = validation_messages["valor"]
-            else:
-                valor_field.border_color = th["TEXT_SECONDARY"]
-                valor_field.error_text = None
+        
+        if hasattr(cnpj_field, 'page') and cnpj_field.page:
+            cnpj_field.page.update()
         
         atualizarStatus()
 
@@ -98,19 +92,20 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
         if not status_container:
             return
             
-        campos_preenchidos = sum([
-            1 if fornecedor["cnpj"] else 0,
-            1 if fornecedor["codigo_produto"] else 0,
-            1 if fornecedor["valor_produto"] else 0
-        ])
+        cnpj_digits = fornecedor["cnpj"].replace(".", ""). replace("/", "").replace("-", "")
+        cnpj_preenchido = bool(fornecedor["cnpj"])
+        cnpj_valido = len(cnpj_digits) == 14 and cnpj_digits.isdigit()
+        codigo_preenchido = bool(fornecedor["codigo_produto"])
+        valor_preenchido = bool(fornecedor["valor_produto"])
+        
+        campos_preenchidos = sum([cnpj_preenchido, codigo_preenchido, valor_preenchido])
         
         if fornecedor["processando"]:
             status_color = th.get("WARNING", "#F59E0B")
             status_text = "Processando..."
             status_icon = ft.ProgressRing(width=12, height=12, stroke_width=2, color=status_color)
         elif campos_preenchidos == 3:
-            cnpj_digits = fornecedor["cnpj"].replace(".", "").replace("/", "").replace("-", "")
-            if len(cnpj_digits) == 14:
+            if cnpj_valido:
                 status_color = th.get("SUCCESS", "#10B981")
                 status_text = "Pronto para processar"
                 status_icon = ft.Icon("check_circle", color=status_color, size=14)
@@ -119,9 +114,14 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
                 status_text = "CNPJ inválido"
                 status_icon = ft.Icon("error", color=status_color, size=14)
         elif campos_preenchidos > 0:
-            status_color = th.get("INFO", "#3B82F6")
-            status_text = f"{campos_preenchidos}/3 campos preenchidos"
-            status_icon = ft.Icon("edit", color=status_color, size=14)
+            if cnpj_preenchido and len(cnpj_digits) < 14:
+                status_color = th.get("INFO", "#3B82F6")
+                status_text = f"Digitando CNPJ... ({len(cnpj_digits)}/14)"
+                status_icon = ft.Icon("edit", color=status_color, size=14)
+            else:
+                status_color = th.get("INFO", "#3B82F6")
+                status_text = f"{campos_preenchidos}/3 campos preenchidos"
+                status_icon = ft.Icon("edit", color=status_color, size=14)
         else:
             status_color = th["TEXT_SECONDARY"]
             status_text = "Aguardando dados"
@@ -131,6 +131,9 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
             status_icon,
             ft.Text(status_text, color=status_color, size=12, weight="w500")
         ], spacing=6)
+        
+        if hasattr(status_container, 'page') and status_container.page:
+            status_container.page.update()
 
     cnpj_field = ft.TextField(
         label="CNPJ da Empresa",
@@ -174,10 +177,10 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
         hint_text="100,00",
         value=fornecedor["valor_produto"],
         on_change=onValorChange,
-        bgcolor=th["BACKGROUNDSCREEN"],  # Ajustar cor de fundo
-        color=th["TEXT"],  # Ajustar cor do texto
-        border_color=th["TEXT_SECONDARY"],  # Ajustar cor da borda
-        focused_border_color=th["PRIMARY_COLOR"],  # Ajustar cor da borda focada
+        bgcolor=th["BACKGROUNDSCREEN"],
+        color=th["TEXT"],
+        border_color=th["TEXT_SECONDARY"],
+        focused_border_color=th["PRIMARY_COLOR"],
         prefix_icon="attach_money",
         suffix_text="BRL",
         border_radius=12,
@@ -240,16 +243,12 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
             ft.Container(expand=True),
             
             ft.Container(
-                content=ft.Text(f"{index + 1}/{total}", 
-                               color=th["PRIMARY_COLOR"], 
-                               size=11, 
-                               weight="w600"),
+                content=ft.Text(f"{index + 1}/{total}", color=th["PRIMARY_COLOR"], size=11,weight="w600"),               
                 bgcolor=f"{th['CARD']}",
                 padding=ft.padding.symmetric(horizontal=10, vertical=5),
                 border_radius=12,
                 border=ft.border.all(1, f"{th['TEXT']}30")
             ),
-            
             botao_remover
         ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
         margin=ft.margin.only(bottom=16)
@@ -267,11 +266,7 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
         margin=ft.margin.only(bottom=20)
     )
     
-    divider = ft.Container(
-        height=1,
-        bgcolor=f"{th['TEXT_SECONDARY']}",
-        margin=ft.margin.symmetric(vertical=16)
-    )
+    divider = ft.Container(height=1,bgcolor=f"{th['TEXT_SECONDARY']}",margin=ft.margin.symmetric(vertical=16))
     
     validarCampos()
     
@@ -288,7 +283,6 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
                 header_card,
                 status_container,
                 
-                # Seção de campos
                 ft.Container(
                     content=ft.Column([
                         cnpj_field,

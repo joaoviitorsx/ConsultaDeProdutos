@@ -104,15 +104,20 @@ def HeaderApp(
             )
         )
 
-    conteudo_principal = [
-        ft.Row(controles_esquerda, spacing=spacing_esquerda) if controles_esquerda else ft.Container(),
-        ft.Row(controles_direita, spacing=spacing_direita) if controles_direita else ft.Container()
-    ]
-
     container_header = ft.Container(
-        content=ft.Row(
-            conteudo_principal,
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+        content=ft.ResponsiveRow(
+            controls=[
+                ft.Container(
+                    content=ft.Row(controles_esquerda, spacing=spacing_esquerda),
+                    col={"sm": 12, "md": 6}
+                ),
+                ft.Container(
+                    content=ft.Row(controles_direita, spacing=spacing_direita, alignment=ft.MainAxisAlignment.END),
+                    col={"sm": 12, "md": 6}
+                )
+            ],
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER
         ),
         padding=ft.padding.symmetric(horizontal=padding_horizontal, vertical=padding_vertical),
         bgcolor=cor_fundo or th["CARD"],
