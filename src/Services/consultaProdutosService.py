@@ -65,13 +65,13 @@ class ConsultaProdutosService:
         """
         valor = float(valor_produto)
 
-        print("🟨 DEBUG - INÍCIO cálculo de imposto")
-        print(f"🔹 Valor do produto: {valor}")
-        print(f"🔹 UF fornecedor: {uf}")
-        print(f"🔹 Regime tributário: {regime}")
-        print(f"🔹 Categoria Fiscal: {categoriaFiscal}")
-        print(f"🔹 Alíquota do produto (banco): {aliquota}")
-        print(f"🔹 Decreto aplica? {'Sim' if decreto else 'Não'}")
+        # print("DEBUG - INÍCIO cálculo de imposto")
+        # print(f"Valor do produto: {valor}")
+        # print(f"UF fornecedor: {uf}")
+        # print(f"Regime tributário: {regime}")
+        # print(f"Categoria Fiscal: {categoriaFiscal}")
+        # print(f"Alíquota do produto (banco): {aliquota}")
+        # print(f"Decreto aplica? {'Sim' if decreto else 'Não'}")
 
         # Regra 1: Produto isento por decreto estadual (somente CE)
         if uf == "CE" and decreto:
