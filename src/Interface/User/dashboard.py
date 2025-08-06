@@ -13,6 +13,8 @@ def DashboardPage(page: ft.Page, usuario_info=None):
 
     if usuario_info:
         page.usuario_info = usuario_info
+        if isinstance(usuario_info, dict) and usuario_info.get("empresa_id"):
+            page.selected_empresa_id = usuario_info.get("empresa_id")
 
     header_container = ft.Container()
     main_content = ft.Column([], spacing=0, expand=True)

@@ -146,7 +146,7 @@ def LoginPage(page: ft.Page):
         shadow=ft.BoxShadow(blur_radius=40, spread_radius=8, color="#00000030", offset=ft.Offset(0, 12)),
         content=ft.Column(
             controls=[
-                ft.Image(src=logo, width=380, height=140),
+                ft.Image(src=logo, width=440, height=180),
                 ft.Container(height=8), titulo_texto,
                 ft.Container(height=8), input_usuario,
                 ft.Container(height=4), input_senha,

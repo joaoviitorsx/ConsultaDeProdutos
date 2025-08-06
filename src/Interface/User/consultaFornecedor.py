@@ -117,14 +117,14 @@ def ConsultaFornecedorPage(page: ft.Page):
 
     search_button = ft.ElevatedButton(
         content=ft.Row([
-            ft.Icon(name="search", size=28, color="white"),
+            ft.Icon(name="search", size=30, color="white"),
         ], spacing=4),
         on_click=buscarFornecedor,
         bgcolor=th["PRIMARY_COLOR"],
         color="white",
         style=ft.ButtonStyle(
-            shape=ft.RoundedRectangleBorder(radius=8),
-            padding=ft.padding.all(16)
+            shape=ft.RoundedRectangleBorder(radius=10),
+            padding=ft.padding.all(16),
         ),
         disabled=False
     )

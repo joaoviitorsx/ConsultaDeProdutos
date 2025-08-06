@@ -107,17 +107,21 @@ def ConsultaRelatorioPage(page: ft.Page):
                         "data": datetime.strptime(c["dataConsulta"], "%Y-%m-%dT%H:%M:%S").strftime("%d/%m/%Y") if c.get("dataConsulta") else "",
                         "fornecedor": c.get("nomeFornecedor", ""),
                         "cnpj": c.get("cnpjFornecedor", ""),
+                        "cnae": c.get("cnae", ""),
+                        "uf": c.get("uf", ""),
+                        "decreto": "Sim" if c.get("decreto") else "Não",
+                        "regime": c.get("regime") or "Não informado",
                         "produto": c.get("produto", ""),
+                        "ncm": c.get("ncm", ""),
                         "codigo": c.get("codigoProduto", ""),
                         "valor_base": c.get("valorBase", 0.0),
                         "aliquota": c.get("aliquotaAplicada", ""),
-                        "adicional": f"{c.get('adicionalSimples', 0)}%" if c.get("adicionalSimples") else "Isento",
-                        "total_impostos": (c.get("valorFinal", 0.0) - c.get("valorBase", 0.0)),
+                        "aliquotaProduto": c.get("aliquotaProduto", ""),
                         "valor_final": c.get("valorFinal", 0.0),
-                        "regime": c.get("regime") or "Não informado"
                     }
                     for c in dados
                 ]
+
                 carregando = False
                 notificacao(page, "Sucesso", f"Encontrados {len(dados_relatorio)} registros", "sucesso")
             except Exception as ex:
@@ -149,12 +153,18 @@ def ConsultaRelatorioPage(page: ft.Page):
             ft.DataColumn(ft.Text("Data", color="white", weight="bold")),
             ft.DataColumn(ft.Text("Fornecedor", color="white", weight="bold")),
             ft.DataColumn(ft.Text("CNPJ", color="white", weight="bold")),
+            ft.DataColumn(ft.Text("UF", color="white", weight="bold")),
+            ft.DataColumn(ft.Text("CNAE", color="white", weight="bold")),
+            ft.DataColumn(ft.Text("Regime", color="white", weight="bold")),
             ft.DataColumn(ft.Text("Produto", color="white", weight="bold")),
             ft.DataColumn(ft.Text("Código", color="white", weight="bold")),
+            ft.DataColumn(ft.Text("NCM", color="white", weight="bold")),
+            ft.DataColumn(ft.Text("Aliq. Prod.", color="white", weight="bold")),
             ft.DataColumn(ft.Text("Valor Base", color="white", weight="bold")),
-            ft.DataColumn(ft.Text("Regime", color="white", weight="bold")),
-            ft.DataColumn(ft.Text("Total", color="white", weight="bold"))
+            ft.DataColumn(ft.Text("Aliq. Aplicada", color="white", weight="bold")),
+            ft.DataColumn(ft.Text("Valor Final", color="white", weight="bold")),
         ]
+
 
         linhas = []
         for idx, item in enumerate(dados_relatorio):
@@ -165,18 +175,23 @@ def ConsultaRelatorioPage(page: ft.Page):
                 ft.DataRow(
                     cells=[
                         ft.DataCell(ft.Text(item["data"], color=th["TEXT"], size=12)),
-                        ft.DataCell(ft.Text(item["fornecedor"][:20] + "..." if len(item["fornecedor"]) > 20 else item["fornecedor"], color=th["TEXT"], size=12)),
+                        ft.DataCell(ft.Text(item["fornecedor"], color=th["TEXT"], size=12)),
                         ft.DataCell(ft.Text(item["cnpj"], color=th["TEXT"], size=12, font_family="monospace")),
-                        ft.DataCell(ft.Text(item["produto"], color=th["TEXT"], size=12)),
-                        ft.DataCell(ft.Text(item["codigo"], color=th["TEXT"], size=12, font_family="monospace")),
-                        ft.DataCell(ft.Text(formatador(item["valor_base"]), color=th["TEXT"], size=12)),
+                        ft.DataCell(ft.Text(item["uf"], color=th["TEXT"], size=12)),
+                        ft.DataCell(ft.Text(item["cnae"], color=th["TEXT"], size=12)),
                         ft.DataCell(ft.Container(
                             content=ft.Text(item["regime"], color="white", size=10, weight="bold"),
-                            bgcolor=cor_regime,
+                            bgcolor=th.get("SUCCESS", "#10B981") if "Simples" in item["regime"] else th.get("INFO", "#3B82F6"),
                             padding=ft.padding.symmetric(horizontal=8, vertical=4),
                             border_radius=12
                         )),
-                        ft.DataCell(ft.Text(formatador(item["valor_final"]), color=th["TEXT"], size=12, weight="bold"))
+                        ft.DataCell(ft.Text(item["produto"], color=th["TEXT"], size=12)),
+                        ft.DataCell(ft.Text(item["codigo"], color=th["TEXT"], size=12, font_family="monospace")),
+                        ft.DataCell(ft.Text(item["ncm"], color=th["TEXT"], size=12)),
+                        ft.DataCell(ft.Text(item["aliquotaProduto"], color=th["TEXT"], size=12)),
+                        ft.DataCell(ft.Text(formatador(item["valor_base"]), color=th["TEXT"], size=12)),
+                        ft.DataCell(ft.Text(item["aliquota"], color=th["TEXT"], size=12)),
+                        ft.DataCell(ft.Text(formatador(item["valor_final"]), color=th["TEXT"], size=12, weight="bold")),
                     ],
                     color=cor_linha
                 )
@@ -191,10 +206,10 @@ def ConsultaRelatorioPage(page: ft.Page):
             divider_thickness=1,
             data_row_min_height=50,
             data_row_max_height=50,
-            column_spacing=16,
+            column_spacing=12,
             border=ft.border.all(1, th["PRIMARY_COLOR"]),
             border_radius=12,
-            horizontal_margin=32,
+            horizontal_margin=24,
         )
 
         tabela_container.content = ft.Container(

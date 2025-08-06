@@ -16,9 +16,6 @@ def ConsultaProdutosPage(page: ft.Page):
         notificacao(page, "Erro", "Empresa não identificada. Faça login novamente.", "erro")
         return
     
-    print(f"DEBUG selected_empresa_id: {page.selected_empresa_id}")
-    print(f"DEBUG session.usuario_id: {page.session.get('usuario_id')}")
-
     theme.apply_theme(page)
     th = theme.get_theme()
 
@@ -33,7 +30,6 @@ def ConsultaProdutosPage(page: ft.Page):
         atualizarPaineisTema()
         atualizarPainelFornecedor()
         atualizarResultados()
-
 
     def onThemeChange(novo_tema):
         nonlocal th
@@ -79,16 +75,15 @@ def ConsultaProdutosPage(page: ft.Page):
         th = theme.get_theme()
 
         titulo_secao.content = ft.Column([
-            ft.Text("Comparação de Fornecedores", 
-                size=32, weight="bold", color=th["TEXT"]),
-            ft.Text("Analise impostos e encontre a melhor opção para sua compra", 
-                size=18, color=th["TEXT_SECONDARY"]),
+            ft.Text("Comparação de Fornecedores", size=32, weight="bold", color=th["TEXT"]),
+            ft.Text("Analise impostos e encontre a melhor opção para sua compra", size=18, color=th["TEXT_SECONDARY"]),      
         ], spacing=8)
         
         painel_fornecedores.content = ft.Container(
             bgcolor=th["CARD"],
             padding=24,
             border_radius=12,
+            height=700,  # Altura fixa mantida
             content=ft.Column([
                 ft.Row([
                     ft.Row([
@@ -103,8 +98,7 @@ def ConsultaProdutosPage(page: ft.Page):
                         border_radius=4
                     )
                 ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                ft.Text("Adicione até 4 fornecedores para comparar impostos e valores", 
-                    color=th["TEXT_SECONDARY"], size=14),
+                ft.Text("Adicione até 4 fornecedores para comparar impostos e valores", color=th["TEXT_SECONDARY"], size=14),    
                 ft.Container(height=16),
                 ft.Container(
                     content=ft.Column([fornecedores_container], scroll=ft.ScrollMode.AUTO, expand=True),
@@ -112,18 +106,17 @@ def ConsultaProdutosPage(page: ft.Page):
                 ),
             ], spacing=16, expand=True)
         )
-
         resultados_card.content = ft.Container(
             bgcolor=th["CARD"],
             padding=24,
             border_radius=12,
+            height=700, 
             content=ft.Column([
                 ft.Row([
                     ft.Icon(name="assessment", color=th.get("SUCCESS", "#10B981"), size=24),
                     ft.Text("Resultado da Análise", size=20, weight="bold", color=th["TEXT"]),
                     ft.Container(
-                        content=ft.Text(f"{len(resultados_data)} resultado{'s' if len(resultados_data) != 1 else ''}", 
-                                    color="white", size=12, weight="bold"),
+                        content=ft.Text(f"{len(resultados_data)} resultado{'s' if len(resultados_data) != 1 else ''}", color="white", size=12, weight="bold"),
                         bgcolor=th.get("SUCCESS", "#10B981"),
                         padding=ft.padding.symmetric(horizontal=8, vertical=4),
                         border_radius=12,
@@ -141,6 +134,13 @@ def ConsultaProdutosPage(page: ft.Page):
     async def processarFornecedor(fornecedor_id):
         fornecedor = next((f for f in fornecedores_data if f["id"] == fornecedor_id), None)
         if not fornecedor or not all([fornecedor["cnpj"], fornecedor["codigo_produto"], fornecedor["valor_produto"]]):
+            return
+
+        codigoPreenchido = [f["codigo_produto"] for f in fornecedores_data if f["codigo_produto"].strip()]
+        codigoUnico = set(codigoPreenchido)
+
+        if len(codigoUnico) > 1:
+            notificacao(page,"Códigos de Produto Diferentes", f"Fornecedor #{fornecedor_id} está utilizando codigo do produto distinto dos demais", "erro")
             return
 
         if len(fornecedor["cnpj"].replace(".", "").replace("/", "").replace("-", "")) != 14:
@@ -194,6 +194,10 @@ def ConsultaProdutosPage(page: ft.Page):
                     "aliquotaAplicada": str(resultado_api.get("aliquota_utilizada", "")),
                     "adicionalSimples": resultado_api.get("adicional_simples", 0),
                     "valorFinal": resultado_api.get("valor_final", valor_produto),
+                    "cnae": fornecedor_api.get("cnae", ""),
+                    "ncm": produto_api.get("ncm", ""),
+                    "aliquotaProduto": produto_api.get("aliquota", ""),
+                    "decreto": decreto
                 }
 
                 service.salvarConsultaUsuario(dados_consulta)
@@ -245,7 +249,10 @@ def ConsultaProdutosPage(page: ft.Page):
         except ValueError as ve:
             notificacao(page, "Erro", str(ve), "erro")
         except Exception as e:
-            notificacao(page, "Erro", f"Erro ao processar fornecedor: {str(e)}", "erro")
+            if "not found" in str(e).lower() or "404" in str(e):
+                notificacao(page, "CNPJ Não Encontrado", "CNPJ não encontrado na base de dados. Verifique se o número está correto.", "alerta")
+            else:
+                notificacao(page, "Erro", f"Erro ao processar fornecedor: {str(e)}", "erro")
         finally:
             fornecedor["processando"] = False
             atualizarPainelFornecedor()
@@ -363,22 +370,32 @@ def ConsultaProdutosPage(page: ft.Page):
         if len(fornecedores_data) < 4:
             botao_adicionar = ft.ElevatedButton(
                 content=ft.Row([
-                    ft.Icon(name="add", size=16, color=th["TEXT_SECONDARY"]),
-                    ft.Text(f"Adicionar Fornecedor ({len(fornecedores_data)}/4)", 
-                        color=th["TEXT_SECONDARY"], weight="bold")
-                ], spacing=8, alignment=ft.MainAxisAlignment.CENTER),
+                    ft.Icon(name="add", size=20, color="white"),
+                    ft.Text(
+                        f"Adicionar Fornecedor ({len(fornecedores_data)}/4)",
+                        color="white",
+                        weight="bold",
+                        size=14
+                    )
+                ], spacing=12, alignment=ft.MainAxisAlignment.CENTER),
                 on_click=adicionarFornecedor,
-                bgcolor="transparent",
-                width=float("inf"),
+                bgcolor=th["PRIMARY_COLOR"],
                 height=48,
+                width=float("inf"),
                 style=ft.ButtonStyle(
-                    side=ft.BorderSide(1, th["TEXT_SECONDARY"]),
-                    shape=ft.RoundedRectangleBorder(radius=8),
-                    overlay_color={ft.ControlState.HOVERED: th["CARD"]}
+                    shape=ft.RoundedRectangleBorder(radius=10),
+                    padding=ft.padding.symmetric(horizontal=16, vertical=12),
+                    overlay_color={
+                        ft.ControlState.HOVERED: "#1E40AF80",
+                        ft.ControlState.FOCUSED: "#1E40AFCC" 
+                    },
+                    color={
+                        ft.ControlState.HOVERED: "white",
+                        ft.ControlState.FOCUSED: "white"
+                    }
                 )
             )
             fornecedores_container.controls.append(botao_adicionar)
-        
         page.update()
 
     titulo_secao = ft.Container(
