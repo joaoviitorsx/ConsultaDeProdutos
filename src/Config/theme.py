@@ -15,6 +15,7 @@ _LIGHT_THEME = {
     "BACKGROUNDSCREEN": "#C2C2C2",
     "BLACK": "#000000",
     "INPUT_BG": "#FFFFFF",
+    "HOVER": "#7A9FEE",
 }
 
 _DARK_THEME = {
