@@ -102,7 +102,7 @@ async def sincronizarProdutos(cnpj: str, token: str, page):
                 await asyncio.sleep(0.2)
             else:
                 print(f"⚠️ Erro na sincronização: {response.text}")
-                notificacao(page, "Erro na Sincronização", f"Falha ao sincronizar lote {contador_tentativas}.", "erro")
+                notificacao(page, "Erro na Sincronização", f"Falha ao sincronizar {contador_tentativas}.", "erro")
                 return
 
         print("🔄 Produtos sincronizados com sucesso")

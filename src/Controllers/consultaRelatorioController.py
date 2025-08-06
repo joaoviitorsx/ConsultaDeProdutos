@@ -12,10 +12,7 @@ def get_consultas_relatorio(
     ano: int = Query(..., description="Ano da consulta")
 ):
     try:
-        consultas = service.buscarConsultasPorPeriodo(empresa_id, mes, ano)
-        for c in consultas:
-            c.pop('_sa_instance_state', None)
-        return consultas
+        return service.buscarConsultasPorPeriodo(empresa_id, mes, ano)
     except Exception as e:
         print("Erro ao buscar consultas:", e)
         raise HTTPException(status_code=500, detail=str(e))
