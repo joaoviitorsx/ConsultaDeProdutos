@@ -1,14 +1,15 @@
-import time
+import os
 import httpx
-import threading
 import flet as ft
-from datetime import datetime
-from datetime import datetime, timedelta
 from src.Config import theme
-from src.Components.headerApp import HeaderApp
-from src.Components.notificacao import notificacao
+from datetime import datetime
+from dotenv import load_dotenv
 from src.Utils.validadores import formatador
+from src.Components.headerApp import HeaderApp
 from src.Utils.pdf import gerarPdfRelatorio
+from src.Components.notificacao import notificacao
+
+RELATORIO_URL = os.getenv("RELATORIO_URL")
 
 def ConsultaRelatorioPage(page: ft.Page):
     print("🟡 Tela Consulta Relatórios carregada")
@@ -21,7 +22,7 @@ def ConsultaRelatorioPage(page: ft.Page):
     carregando = False
     periodo_selecionado = {"mes": "", "ano": ""}
 
-    def on_theme_change(novo_tema):
+    def onThemeChange(novo_tema):
         nonlocal th
         th = theme.get_theme()
         page.bgcolor = th["BACKGROUNDSCREEN"]
@@ -33,16 +34,16 @@ def ConsultaRelatorioPage(page: ft.Page):
         header_container.content = HeaderApp(
             page, 
             titulo_tela="Relatórios", 
-            on_theme_changed=on_theme_change, 
+            on_theme_changed=onThemeChange, 
             mostrar_voltar=True,
             mostrar_logo=False,        
             mostrar_nome_empresa=False 
         )
         
-        atualizar_tema_componentes()
+        atualizarComponentes()
         page.update()
 
-    def atualizar_tema_componentes():
+    def atualizarComponentes():
         titulo_secao.content = ft.Column([
             ft.Text("Histórico de Consultas", 
                 size=32, weight="bold", color=th["TEXT"]),
@@ -67,9 +68,9 @@ def ConsultaRelatorioPage(page: ft.Page):
         resultados_card.content.bgcolor = th["CARD"]
         
         if dados_relatorio:
-            atualizar_tabela()
+            atualizarTabela()
 
-    def consultar_relatorio(e):
+    def consultarRelatorio(e):
         if not combo_mes.value or not combo_ano.value:
             notificacao(page, "Atenção", "Selecione o mês e ano para consulta", "alerta")
             return
@@ -84,7 +85,7 @@ def ConsultaRelatorioPage(page: ft.Page):
             ft.Text("Consultando...", color="white")
         ], spacing=8)
 
-        atualizar_area_resultados(carregando=True)
+        atualizarResultados(carregando=True)
         page.update()
 
         async def processar_consulta():
@@ -92,9 +93,8 @@ def ConsultaRelatorioPage(page: ft.Page):
                 empresa_id = getattr(page, "selected_empresa_id", 1)
                 mes_num = int(combo_mes.value[:2])
                 ano_num = int(combo_ano.value)
-                url = "http://localhost:8000/api/consultas-relatorio"
                 async with httpx.AsyncClient() as client:
-                    resp = await client.get(url, params={
+                    resp = await client.get(RELATORIO_URL, params={
                         "empresa_id": empresa_id,
                         "mes": mes_num,
                         "ano": ano_num
@@ -133,19 +133,19 @@ def ConsultaRelatorioPage(page: ft.Page):
                     ft.Icon(name="search", size=16, color="white"),
                     ft.Text("Consultar", color="white")
                 ], spacing=8)
-                atualizar_area_resultados()
+                atualizarResultados()
                 page.update()
 
         page.run_task(processar_consulta)
 
-    def gerar_pdf(e):
+    def gerarPDF(e):
         if not dados_relatorio:
             notificacao(page, "Atenção", "Consulte os dados antes de gerar o PDF", "alerta")
             return
 
         gerarPdfRelatorio(page, dados_relatorio, botao_pdf, notificacao)
 
-    def atualizar_tabela():
+    def atualizarTabela():
         if not dados_relatorio:
             return
 
@@ -232,7 +232,7 @@ def ConsultaRelatorioPage(page: ft.Page):
             )
         )
 
-    def atualizar_area_resultados(carregando=False):
+    def atualizarResultados(carregando=False):
         if carregando:
             resultados_card.content.content = ft.Container(
                 content=ft.Column([
@@ -263,7 +263,7 @@ def ConsultaRelatorioPage(page: ft.Page):
                 alignment=ft.alignment.center
             )
         else:
-            atualizar_tabela()
+            atualizarTabela()
             resultados_card.content.content = ft.Column([
                 ft.Row([
                     ft.Icon(name="assessment", color=th.get("SUCCESS", "#10B981"), size=24),
@@ -279,13 +279,13 @@ def ConsultaRelatorioPage(page: ft.Page):
                 tabela_container
             ], spacing=16, expand=True)
 
-            atualizar_tabela()
+            atualizarTabela()
 
     header_container = ft.Container(
         content=HeaderApp(
             page, 
             titulo_tela="Relatórios", 
-            on_theme_changed=on_theme_change, 
+            on_theme_changed=onThemeChange, 
             mostrar_voltar=True,
             mostrar_logo=False, 
             mostrar_nome_empresa=False,
@@ -340,7 +340,7 @@ def ConsultaRelatorioPage(page: ft.Page):
             ft.Icon(name="search", size=16, color="white"),
             ft.Text("Consultar", color="white", weight="bold")
         ], spacing=8),
-        on_click=consultar_relatorio,
+        on_click=consultarRelatorio,
         bgcolor=th["PRIMARY_COLOR"],
         height=56,
         width=150,
@@ -355,7 +355,7 @@ def ConsultaRelatorioPage(page: ft.Page):
             ft.Icon(name="picture_as_pdf", size=16, color="white"),
             ft.Text("Gerar PDF", color="white", weight="bold")
         ], spacing=8),
-        on_click=gerar_pdf,
+        on_click=gerarPDF,
         bgcolor=th.get("SUCCESS", "#10B981"),
         height=56,
         width=150,
