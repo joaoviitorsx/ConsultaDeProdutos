@@ -5,9 +5,13 @@ import sys
 import subprocess
 import flet as ft
 
-from src.Utils.templatePdf import gerar_pdf_com_dados
+from src.Utils.templatePdf import gerarPdfDados
 
 def gerarPdfRelatorio(page, dados_relatorio, botao_pdf, notificacao):
+    if not dados_relatorio:
+        notificacao(page, "Aviso", "Nenhum dado disponível para gerar o PDF", tipo="alerta")
+        return
+
     file_picker = next((c for c in page.overlay if isinstance(c, ft.FilePicker)), None)
 
     if file_picker is None:
@@ -15,7 +19,7 @@ def gerarPdfRelatorio(page, dados_relatorio, botao_pdf, notificacao):
         page.overlay.append(file_picker)
         page.update()
 
-    def salvar_em(caminho_pdf):
+    def salvarEm(caminho_pdf):
         botao_pdf.disabled = True
         botao_pdf.content = ft.Row([
             ft.ProgressRing(width=16, height=16, stroke_width=2, color="white"),
@@ -30,7 +34,35 @@ def gerarPdfRelatorio(page, dados_relatorio, botao_pdf, notificacao):
                 else:
                     caminho_pdf_final = caminho_pdf
 
-                gerar_pdf_com_dados(dados_relatorio, caminho_pdf_final)
+                dados_formatados = []
+                for item in dados_relatorio:
+                    try:
+                        valor_base = float(str(item.get("valor_base", 0)).replace("R$", "").replace(".", "").replace(",", ".").strip())
+                        valor_final = float(str(item.get("valor_final", 0)).replace("R$", "").replace(".", "").replace(",", ".").strip())
+                        
+                        dados_formatados.append({
+                            "data": str(item.get("data", "")),
+                            "fornecedor": str(item.get("fornecedor", "")),
+                            "cnpj": str(item.get("cnpj", "")),
+                            "uf": str(item.get("uf", "")),
+                            "cnae": str(item.get("cnae", "")),
+                            "regime": str(item.get("regime", "")),
+                            "produto": str(item.get("produto", "")),
+                            "codigo": str(item.get("codigo", "")),
+                            "ncm": str(item.get("ncm", "")),
+                            "aliquotaProduto": str(item.get("aliquotaProduto", "")),
+                            "valor_base": valor_base,
+                            "aliquota": str(item.get("aliquota", "")),
+                            "valor_final": valor_final
+                        })
+                    except (ValueError, TypeError) as e:
+                        print(f"Erro ao processar item: {e}")
+                        continue
+
+                if not dados_formatados:
+                    raise Exception("Nenhum dado válido encontrado para gerar o PDF")
+
+                gerarPdfDados(dados_formatados, caminho_pdf_final)
 
                 def abrir(ev=None):
                     page.close(dialog)
@@ -59,7 +91,8 @@ def gerarPdfRelatorio(page, dados_relatorio, botao_pdf, notificacao):
                 notificacao(page, "Sucesso", "PDF gerado com sucesso!", tipo="sucesso")
 
             except Exception as ex:
-                notificacao(page, "Erro", f"Erro ao gerar PDF: {ex}", tipo="erro")
+                print(f"Erro detalhado: {ex}")
+                notificacao(page, "Erro", f"Erro ao gerar PDF: {str(ex)}", tipo="erro")
             finally:
                 botao_pdf.disabled = False
                 botao_pdf.content = ft.Row([
@@ -70,11 +103,15 @@ def gerarPdfRelatorio(page, dados_relatorio, botao_pdf, notificacao):
 
         threading.Thread(target=processar_pdf, daemon=True).start()
 
-    file_picker.on_result = lambda e: salvar_em(e.path) if e.path else notificacao(page, "Aviso", "Salvamento cancelado", tipo="alerta")
+    file_picker.on_result = lambda e: salvarEm(e.path) if e.path else notificacao(page, "Aviso", "Salvamento cancelado", tipo="alerta")
 
     try:
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        nome_padrao = f"relatorio_consultas_{timestamp}"
+        
         file_picker.save_file(
             dialog_title="Salvar Relatório como PDF",
+            file_name=nome_padrao,
             file_type="custom",
             allowed_extensions=["pdf"]
         )
