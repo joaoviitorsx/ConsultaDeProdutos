@@ -12,6 +12,19 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
     status_container = None
     validation_messages = {"cnpj": "", "codigo": "", "valor": ""}
 
+    def processarValido():
+        cnpj_digits = fornecedor["cnpj"].replace(".", "").replace("/", "").replace("-", "")
+        cnpj_valido = len(cnpj_digits) == 14 and cnpj_digits.isdigit()
+        codigo_valido = len(fornecedor["codigo_produto"]) > 0
+        valor_valido = len(fornecedor["valor_produto"]) > 0
+        
+        if cnpj_valido and codigo_valido and valor_valido and not fornecedor["processando"]:
+            on_processar(fornecedor["id"])
+
+    def onKeyDown(e):
+        if e.key == "Enter":
+            processarValido()
+
     def onCnpjChange(e):
         formatado = formatarCnpj(e.control.value)
         e.control.value = formatado
@@ -140,6 +153,7 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
         hint_text="00.000.000/0000-00",
         value=fornecedor["cnpj"],
         on_change=onCnpjChange,
+        on_submit=lambda e: processarValido(),
         max_length=18,
         bgcolor=th["BACKGROUNDSCREEN"],
         color=th["TEXT"],
@@ -159,6 +173,7 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
         hint_text="Digite o código numérico",
         value=fornecedor["codigo_produto"],
         on_change=onCodigoChange,
+        on_submit=lambda e: processarValido(), 
         bgcolor=th["BACKGROUNDSCREEN"],
         color=th["TEXT"],
         border_color=th["TEXT_SECONDARY"],
@@ -177,6 +192,7 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
         hint_text="100,00",
         value=fornecedor["valor_produto"],
         on_change=onValorChange,
+        on_submit=lambda e: processarValido(),
         bgcolor=th["BACKGROUNDSCREEN"],
         color=th["TEXT"],
         border_color=th["TEXT_SECONDARY"],
@@ -195,13 +211,13 @@ def CardFornecedor(fornecedor: dict, index: int, total: int, on_update, on_proce
         content=ft.Row([
             ft.ProgressRing(width=18, height=18, stroke_width=2, color="white") if fornecedor["processando"] else ft.Icon(name="calculate", size=18, color="white"),
             ft.Text(
-                "Processando..." if fornecedor["processando"] else "Processar Fornecedor", 
+                "Processando..." if fornecedor["processando"] else "Processar Fornecedor (Enter)", 
                 color="white", 
                 weight="w600",
                 size=14
             )
         ], spacing=10, alignment=ft.MainAxisAlignment.CENTER),
-        on_click=lambda _: on_processar(fornecedor["id"]),
+        on_click=lambda _: processarValido(),
         bgcolor=th["TEXT_SECONDARY"],
         disabled=True,
         width=float("inf"),
