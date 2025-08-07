@@ -5,7 +5,7 @@ import requests
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from src.Services.loginService import autenticar, verificarCredenciais
-from src.Components.notificacao import notificacao
+from src.Components.notificacao import notificacao, notificarProgresso, atualizarProgresso, removerProgresso
 from src.Models.loginModel import LoginRequest, LoginResponse
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -48,33 +48,31 @@ async def sincronizarProdutos(cnpj: str, token: str, page):
                 print("✔️ Nenhuma atualização necessária. Sincronização ignorada.")
                 notificacao(page, "Sincronização Atualizada", "Os produtos já estão sincronizados.", "sucesso")
                 return
-            
             total_produtos = data.get("total_produtos", 0)
         else:
             print(f"⚠️ Erro ao verificar sincronização: {verificar_response.text}")
             notificacao(page, "Erro", "Falha ao verificar necessidade de sincronização.", "erro")
             return
 
-        notificacao(page, "Sincronização em Andamento", f"Iniciando sincronização de {total_produtos} produtos...", "info")
+        notificarProgresso(page, "Sincronização em Andamento", f"Iniciando sincronização de {total_produtos} produtos...", "info")
         page.update()
-        
-        lote = 1000
+
+        lote = 2000
         offset = 0
         total_inseridos = 0
         total_atualizados = 0
         max_tentativas = 20
         contador_tentativas = 0
-        
+
         while True:
             contador_tentativas += 1
             if contador_tentativas > max_tentativas:
                 print(f"⚠️ Sincronização interrompida após {max_tentativas} tentativas")
                 break
-                
+
             progress = min(100, int((offset / total_produtos) * 100)) if total_produtos > 0 else 100
-            notificacao(page, "Sincronização em Andamento", f"Processando lote {contador_tentativas}... ({progress}%)", "info")
-            page.update()
-            
+            atualizarProgresso(f"Processamento de inserção e atualização dos produtos", progress, page)
+
             response = await asyncio.to_thread(
                 lambda: requests.post(
                     f"{BACKEND_URL}/sincronizar-produtos",
@@ -82,26 +80,26 @@ async def sincronizarProdutos(cnpj: str, token: str, page):
                     headers={"Authorization": f"Bearer {token}"}
                 )
             )
-            
+
             if response.status_code == 200:
                 dados = response.json()
                 inseridos = dados.get("produtos_inseridos", 0)
                 atualizados = dados.get("produtos_atualizados", 0)
                 total_inseridos += inseridos
                 total_atualizados += atualizados
-                
+
                 if dados.get("concluido", False) or (inseridos == 0 and atualizados == 0):
                     break
-                
+
                 if offset >= total_produtos:
                     print("✅ Sincronização concluída por limite de produtos")
                     break
-                    
+
                 offset += lote
-                
                 await asyncio.sleep(0.2)
             else:
                 print(f"⚠️ Erro na sincronização: {response.text}")
+                removerProgresso(page)
                 notificacao(page, "Erro na Sincronização", f"Falha ao sincronizar {contador_tentativas}.", "erro")
                 return
 
@@ -109,6 +107,7 @@ async def sincronizarProdutos(cnpj: str, token: str, page):
         print(f"- Inseridos: {total_inseridos}")
         print(f"- Atualizados: {total_atualizados}")
 
+        removerProgresso(page)
         notificacao(
             page,
             "Sincronização Concluída",
@@ -118,6 +117,7 @@ async def sincronizarProdutos(cnpj: str, token: str, page):
 
     except Exception as e:
         print(f"⚠️ Exceção ao sincronizar produtos: {e}")
+        removerProgresso(page)
         notificacao(page, "Erro", f"Erro inesperado ao sincronizar produtos: {str(e)}", "erro")
 
 async def realizarLogin(page, usuario, senha):
