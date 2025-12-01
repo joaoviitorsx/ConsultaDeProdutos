@@ -101,16 +101,16 @@ class RelatorioPDF(FPDF):
         if fill_color:
             self.set_fill_color(fill_color[0], fill_color[1], fill_color[2])
         
-        larguras = [20, 30, 25, 10, 18, 22, 35, 30, 15, 15, 20, 15, 22]
+        larguras = [18, 28, 24, 8, 16, 24, 32, 26, 14, 14, 18, 14, 20]
         
         dados = [
             self.limparTexto(item["data"]),
-            self.truncarText(item["fornecedor"], 28),
+            self.truncarText(item["fornecedor"], 26),
             self.limparTexto(item["cnpj"]),
             self.limparTexto(item["uf"]),
             self.limparTexto(item["cnae"]),
-            self.truncarText(item["regime"], 20),
-            self.truncarText(item["produto"], 32),
+            self.truncarText(item["regime"], 22),
+            self.truncarText(item["produto"], 30),
             self.limparTexto(item["codigo"]),
             self.limparTexto(item["ncm"]),
             self.limparTexto(str(item["aliquotaProduto"])),
