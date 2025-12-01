@@ -26,20 +26,31 @@ def LoginPage(page: ft.Page):
         async def login_task():
             try:
                 data = await realizarLogin(page, usuario, senha)
-                if data and "data" in data and "id" in data["data"]:
-                    page.usuario_id = str(data["data"]["id"])
-                    page.usuario_logado = data["data"]["usuario"]
-                    page.razao_social = data["data"].get("nome")
-                    page.selected_empresa_id = data["data"]["empresa_id"]
-                    page.usuario_info = {
-                        "nome": data["data"].get("nome"),
-                        "usuario": data["data"]["usuario"],
-                        "empresa_id": data["data"]["empresa_id"]
-                    }
-                    page.go("/dashboard")
-                else:
+                
+                # Valida se o login foi bem-sucedido
+                if not data:
+                    print("❌ Login falhou - sem dados retornados")
                     return
+                
+                if "data" not in data or "id" not in data["data"]:
+                    print("❌ Login falhou - dados inválidos retornados")
+                    notificacao(page, "Erro de autenticação", "Resposta inválida do servidor.", "erro")
+                    return
+                
+                # Se chegou aqui, o login foi bem-sucedido
+                page.usuario_id = str(data["data"]["id"])
+                page.usuario_logado = data["data"]["usuario"]
+                page.razao_social = data["data"].get("nome")
+                page.selected_empresa_id = data["data"]["empresa_id"]
+                page.usuario_info = {
+                    "nome": data["data"].get("nome"),
+                    "usuario": data["data"]["usuario"],
+                    "empresa_id": data["data"]["empresa_id"]
+                }
+                page.go("/dashboard")
+                
             except Exception as ex:
+                print(f"❌ Erro inesperado no login: {ex}")
                 notificacao(page, "Erro inesperado", str(ex), "erro")
             finally:
                 resetar_botao()

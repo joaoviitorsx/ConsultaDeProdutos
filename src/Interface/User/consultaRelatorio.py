@@ -3,7 +3,6 @@ import httpx
 import flet as ft
 from src.Config import theme
 from datetime import datetime
-from dotenv import load_dotenv
 from src.Utils.validadores import formatador
 from src.Components.headerApp import HeaderApp
 from src.Utils.pdf import gerarPdfRelatorio

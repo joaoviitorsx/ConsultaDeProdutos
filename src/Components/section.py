@@ -180,7 +180,7 @@ def footer():
             ], alignment=ft.MainAxisAlignment.CENTER),
             ft.Container(height=8),
             ft.Row([
-                ft.Text("Versão 1.0.0", size=10, color=th["TEXT_SECONDARY"]),
+                ft.Text("Versão 1.0.5", size=10, color=th["TEXT_SECONDARY"]),
                 ft.Text("•", size=10, color=th["TEXT_SECONDARY"]),
                 ft.Text("Suporte: suporte@realize.com.br", size=10, color=th["TEXT_SECONDARY"]),
             ], spacing=8, alignment=ft.MainAxisAlignment.CENTER)

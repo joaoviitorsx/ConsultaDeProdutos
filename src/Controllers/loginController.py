@@ -9,8 +9,10 @@ from src.Components.notificacao import notificacao, notificarProgresso, atualiza
 from src.Models.loginModel import LoginRequest, LoginResponse
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from src.Utils.path import resourcePath
 
-load_dotenv()
+#load_dotenv()
+load_dotenv(dotenv_path=resourcePath(".env"), override=True)
 
 router = APIRouter()
 security = HTTPBearer()
@@ -125,7 +127,7 @@ async def realizarLogin(page, usuario, senha):
         response = requests.post(API_URL, json={
             "usuario": usuario,
             "senha": senha
-        })
+        }, timeout=10)
 
         if response.status_code == 200:
             result = response.json()
@@ -146,20 +148,37 @@ async def realizarLogin(page, usuario, senha):
             cnpj = result["data"].get("cnpj")
             await sincronizarProdutos(cnpj, token, page)
             
-            page.go("/dashboard")
+            page.update()
+            return result
 
         elif response.status_code == 401:
             notificacao(page, "Login inválido", "Usuário ou senha incorretos.", "erro")
+            page.update()
+            return None
         elif response.status_code == 400:
             notificacao(page, "Dados inválidos", "Verifique os dados informados.", "erro")
+            page.update()
+            return None
         else:
             notificacao(page, "Erro inesperado", response.text, "erro")
+            page.update()
+            return None
 
+    except requests.exceptions.Timeout:
+        print(f"[ERRO] Timeout ao realizar login")
+        notificacao(page, "Erro de conexão", "Tempo de conexão esgotado. Verifique sua VPN.", "erro")
+        page.update()
+        return None
+    except requests.exceptions.ConnectionError:
+        print(f"[ERRO] Falha de conexão ao realizar login")
+        notificacao(page, "Erro de conexão", "Não foi possível conectar ao servidor. Verifique sua VPN e se a API está rodando.", "erro")
+        page.update()
+        return None
     except Exception as e:
         print(f"[ERRO] ao realizar login: {e}")
         notificacao(page, "Erro de rede", "Falha ao conectar com o servidor. Tente novamente.", "erro")
-
-    page.update()
+        page.update()
+        return None
 
 def criarAcessToken(data: dict):
     to_encode = data.copy()
