@@ -1,6 +1,7 @@
 from fpdf import FPDF
 import datetime
 import unicodedata
+from src.Utils.path import resourcePath
 
 class RelatorioPDF(FPDF):
     def __init__(self, orientation='L', unit='mm', format='A4'):
@@ -27,7 +28,7 @@ class RelatorioPDF(FPDF):
 
     def header(self):
         try:
-            self.image("src/Assets/images/icone.png", 10, 8, 25)
+            self.image(resourcePath("src/Assets/images/icone.png"), 10, 8, 25)
         except:
             self.set_fill_color(15, 98, 254)
             self.rect(10, 8, 25, 25, 'F')
@@ -68,28 +69,25 @@ class RelatorioPDF(FPDF):
         self.set_font("Arial", "B", 7)
 
         larguras = {
-            "Data": 18,
-            "Fornecedor": 28,
-            "CNPJ": 24,
-            "UF": 8,
-            "CNAE": 16,
-            "Regime": 24,
-            "Produto": 32,
-            "Codigo": 26,
-            "NCM": 14,
-            "Aliq.Prod": 14,
-            "Valor Base": 18,
-            "Aliq.Aplic": 14,
-            "Valor Final": 20
+            "Data": 14,
+            "Fornecedor": 32,   # Aumentado
+            "CNPJ": 24,         # Aumentado
+            "UF": 18,
+            "CNAE": 12,
+            "Regime": 36,
+            "Produto": 48,      # Diminuído
+            "Codigo": 28,
+            "NCM": 12,
+            "Aliq.Prod": 12,
+            "Valor Base": 15,
+            "Aliq.Aplic": 12,
+            "Valor Final": 15
         }
-        
         colunas = ["Data", "Fornecedor", "CNPJ", "UF", "CNAE", "Regime", "Produto", "Codigo", "NCM", "Aliq.Prod", "Valor Base", "Aliq.Aplic", "Valor Final"]
-                  
+
         for col in colunas:
             self.cell(larguras[col], 10, self.limparTexto(col), border=0, align="C", fill=True)
-        
         self.ln()
-        
         self.set_draw_color(15, 98, 254)
         self.line(10, self.get_y(), 287, self.get_y())
         self.ln(3)
@@ -97,33 +95,48 @@ class RelatorioPDF(FPDF):
     def dados(self, item, fill_color=None):
         self.set_text_color(0)
         self.set_font("Arial", "", 7)
-        
         if fill_color:
             self.set_fill_color(fill_color[0], fill_color[1], fill_color[2])
-        
-        larguras = [18, 28, 24, 8, 16, 24, 32, 26, 14, 14, 18, 14, 20]
-        
+
+        larguras = [14, 32, 24, 18, 12, 36, 48, 28, 12, 12, 15, 12, 15]
+
+        # Limites de caracteres para truncamento por coluna
+        max_chars = {
+            0: 10,   # Data
+            1: 21,   # Fornecedor (aumentado)
+            2: 16,   # CNPJ (aumentado)
+            3: 8,    # UF
+            4: 6,    # CNAE
+            5: 30,   # Regime
+            6: 36,   # Produto (diminuído)
+            7: 18,   # Codigo
+            8: 6,    # NCM
+            9: 6,    # Aliq.Prod
+            10: 8,   # Valor Base
+            11: 6,   # Aliq.Aplic
+            12: 8    # Valor Final
+        }
+
         dados = [
             self.limparTexto(item["data"]),
-            self.truncarText(item["fornecedor"], 26),
+            self.truncarText(item["fornecedor"], max_chars[1]),
             self.limparTexto(item["cnpj"]),
-            self.limparTexto(item["uf"]),
+            self.truncarText(item["uf"], max_chars[3]),
             self.limparTexto(item["cnae"]),
-            self.truncarText(item["regime"], 22),
-            self.truncarText(item["produto"], 30),
-            self.limparTexto(item["codigo"]),
+            self.truncarText(item["regime"], max_chars[5]),
+            self.truncarText(item["produto"], max_chars[6]),
+            self.truncarText(item["codigo"], max_chars[7]),
             self.limparTexto(item["ncm"]),
             self.limparTexto(str(item["aliquotaProduto"])),
             f"R$ {item['valor_base']:.2f}",
             self.limparTexto(str(item["aliquota"])),
             f"R$ {item['valor_final']:.2f}"
         ]
-        
+
         fill = fill_color is not None
-        
+
         for i, valor in enumerate(dados):
             self.cell(larguras[i], 8, str(valor), border=0, align="C", fill=fill)
-        
         self.ln()
 
     def gerarTabela(self, dados):
