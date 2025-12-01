@@ -27,23 +27,40 @@ BACKEND_URL = os.getenv("BACKEND_URL")
 #Verifica se há conexão com o servidor
 def verificarConexaoVPN():
     try:
+        print(f"🔍 Verificando conexão VPN...")
+        print(f"🔍 BACKEND_URL: {BACKEND_URL}")
+        
         # Se for localhost, não precisa verificar VPN
         if "localhost" in BACKEND_URL or "127.0.0.1" in BACKEND_URL:
             print("✅ Conexão local detectada - VPN não necessária")
             return True
         
-        health_url = BACKEND_URL.replace("/api", "/health")
-        response = requests.get(health_url, timeout=5)
+        # Remove /api do final e adiciona /health
+        base_url = BACKEND_URL.rstrip('/api').rstrip('/')
+        health_url = f"{base_url}/health"
+        print(f"🔍 Health URL: {health_url}")
+        print(f"🔍 Tentando conectar ao servidor...")
+        
+        response = requests.get(health_url, timeout=10, verify=False)
+        print(f"✅ Resposta do servidor: Status {response.status_code}")
         
         if response.status_code == 200:
+            print("✅ Conexão VPN verificada com sucesso")
             return True
         else:
+            print(f"⚠️ Servidor respondeu com status: {response.status_code}")
             return True  # Permitir mesmo com status diferente de 200
-    except requests.exceptions.Timeout:
+    except requests.exceptions.Timeout as e:
+        print(f"❌ Timeout ao verificar VPN: {e}")
         return False
     except requests.exceptions.ConnectionError as e:
+        print(f"❌ Erro de conexão: {e}")
         return False
+    except requests.exceptions.SSLError as e:
+        print(f"⚠️ Erro SSL (ignorando): {e}")
+        return True
     except Exception as e:
+        print(f"❌ Erro ao verificar VPN: {type(e).__name__} - {e}")
         return False
 
 async def sincronizarProdutos(cnpj: str, token: str, page):
