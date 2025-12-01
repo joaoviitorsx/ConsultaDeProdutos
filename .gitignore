@@ -216,7 +216,6 @@ dist/
 
 # Dados sensíveis (se houver)
 data/
-database/
 *.db
 *.sqlite
 *.sqlite3
