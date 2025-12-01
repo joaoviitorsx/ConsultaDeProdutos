@@ -24,45 +24,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60 * 
 API_URL = os.getenv("API_URL")
 BACKEND_URL = os.getenv("BACKEND_URL")
 
-#Verifica se há conexão com o servidor
-def verificarConexaoVPN():
-    try:
-        print(f"🔍 Verificando conexão VPN...")
-        print(f"🔍 BACKEND_URL: {BACKEND_URL}")
-        
-        # Se for localhost, não precisa verificar VPN
-        if "localhost" in BACKEND_URL or "127.0.0.1" in BACKEND_URL:
-            print("✅ Conexão local detectada - VPN não necessária")
-            return True
-        
-        # Remove /api do final e adiciona /health
-        base_url = BACKEND_URL.rstrip('/api').rstrip('/')
-        health_url = f"{base_url}/health"
-        print(f"🔍 Health URL: {health_url}")
-        print(f"🔍 Tentando conectar ao servidor...")
-        
-        response = requests.get(health_url, timeout=10, verify=False)
-        print(f"✅ Resposta do servidor: Status {response.status_code}")
-        
-        if response.status_code == 200:
-            print("✅ Conexão VPN verificada com sucesso")
-            return True
-        else:
-            print(f"⚠️ Servidor respondeu com status: {response.status_code}")
-            return True  # Permitir mesmo com status diferente de 200
-    except requests.exceptions.Timeout as e:
-        print(f"❌ Timeout ao verificar VPN: {e}")
-        return False
-    except requests.exceptions.ConnectionError as e:
-        print(f"❌ Erro de conexão: {e}")
-        return False
-    except requests.exceptions.SSLError as e:
-        print(f"⚠️ Erro SSL (ignorando): {e}")
-        return True
-    except Exception as e:
-        print(f"❌ Erro ao verificar VPN: {type(e).__name__} - {e}")
-        return False
-
 async def sincronizarProdutos(cnpj: str, token: str, page):
     print(f"🔄 Verificando necessidade de sincronização para CNPJ: {cnpj}")
     
@@ -164,19 +125,6 @@ async def sincronizarProdutos(cnpj: str, token: str, page):
 async def realizarLogin(page, usuario, senha):
     print(f"🔑 Iniciando processo de login para: {usuario}")
     
-    # Verifica conexão VPN antes de tentar login
-    print("🔍 Verificando conexão VPN...")
-    vpn_status = verificarConexaoVPN()
-    print(f"🔍 Status VPN: {vpn_status}")
-    
-    if not vpn_status:
-        print("❌ Bloqueando login - VPN não conectada")
-        notificacao(page, "Sem Conexão VPN", "Não foi possível conectar ao servidor. Verifique se a VPN está ativa.", "erro")
-        page.update()
-        return None
-    
-    print("✅ VPN verificada, prosseguindo com login...")
-    
     try:
         print(f"📡 Enviando requisição de login para: {API_URL}")
         response = requests.post(API_URL, json={
@@ -277,14 +225,6 @@ def verificarToken(credentials: HTTPAuthorizationCredentials = Depends(security)
 async def realizaLogin(request: LoginRequest):
     try:
         print(f"🔑 Tentativa de login para: {request.usuario}")
-        
-        # Verifica conexão VPN antes de processar login
-        if not verificarConexaoVPN():
-            print("❌ Tentativa de login sem VPN ativa")
-            raise HTTPException(
-                status_code=503,
-                detail="Servidor inacessível. Verifique sua conexão VPN."
-            )
 
         if not request.usuario or not request.senha:
             print("❌ Campos obrigatórios não preenchidos")
