@@ -1,8 +1,15 @@
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, MetaData
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from src.Config.database.db import sqlalchemy_url
+
+# Fuso horário de Brasília (UTC-3)
+BRASILIA_TZ = timezone(timedelta(hours=-3))
+
+def get_brasilia_time():
+    # Remove o timezone info para compatibilidade com SQLite
+    return datetime.now(BRASILIA_TZ).replace(tzinfo=None)
 
 Base = declarative_base()
 
@@ -26,7 +33,7 @@ class Consulta(Base):
     aliquotaAplicada = Column(String(10), nullable=True)
     adicionalSimples = Column(Float, nullable=True)
     valorFinal = Column(Float, nullable=False)
-    dataConsulta = Column(DateTime, default=datetime.utcnow)
+    dataConsulta = Column(DateTime, default=get_brasilia_time)
 
 class ConsultaModel:
     def __init__(self, db_url=None):

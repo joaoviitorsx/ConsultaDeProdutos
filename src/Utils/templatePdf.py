@@ -65,22 +65,22 @@ class RelatorioPDF(FPDF):
     def tabelaCabecalho(self):
         self.set_fill_color(15, 98, 254)
         self.set_text_color(255)
-        self.set_font("Arial", "B", 8)
+        self.set_font("Arial", "B", 7)
 
         larguras = {
-            "Data": 20,
-            "Fornecedor": 30,
-            "CNPJ": 25,
-            "UF": 10,
-            "CNAE": 18,
-            "Regime": 22,
-            "Produto": 35,
-            "Codigo": 30,
-            "NCM": 15,
-            "Aliq.Prod": 15,
-            "Valor Base": 20,
-            "Aliq.Aplic": 15,
-            "Valor Final": 22
+            "Data": 18,
+            "Fornecedor": 28,
+            "CNPJ": 24,
+            "UF": 8,
+            "CNAE": 16,
+            "Regime": 24,
+            "Produto": 32,
+            "Codigo": 26,
+            "NCM": 14,
+            "Aliq.Prod": 14,
+            "Valor Base": 18,
+            "Aliq.Aplic": 14,
+            "Valor Final": 20
         }
         
         colunas = ["Data", "Fornecedor", "CNPJ", "UF", "CNAE", "Regime", "Produto", "Codigo", "NCM", "Aliq.Prod", "Valor Base", "Aliq.Aplic", "Valor Final"]

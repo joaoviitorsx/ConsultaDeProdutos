@@ -7,7 +7,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 HOST = os.getenv("HOST")
+print("Conectando ao host:", HOST)
 USUARIO = os.getenv("USUARIO")
+print("Usando usuário:", USUARIO)
 SENHA = os.getenv("SENHA")
 BANCO = os.getenv("BANCO")
 PORT = int(os.getenv("PORT", 3306))
